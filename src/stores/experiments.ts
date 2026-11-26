@@ -14,6 +14,7 @@
  */
 
 import { computed, reactive } from 'vue'
+import { loadJson, saveJson } from './persistence'
 
 export interface ExperimentStat {
   label: string
@@ -63,8 +64,25 @@ export interface RecorderSource {
 }
 
 const MAX_RECORDS = 200
+const STORAGE_KEY = 'experiments'
 const state = reactive<{ records: ExperimentRecord[] }>({ records: [] })
 let seq = 0
+
+/** 从 localStorage 恢复历史记录（刷新/重开浏览器后仍存在） */
+export function hydrateRecords(): number {
+  const saved = loadJson<ExperimentRecord[]>(STORAGE_KEY, [], Array.isArray)
+  state.records.splice(0, state.records.length, ...saved.slice(-MAX_RECORDS))
+  // 序号接着最大值往上走，避免导入后编号重复
+  for (const r of state.records) {
+    const n = Number(/EXP-(\d+)/.exec(r.id)?.[1] ?? 0)
+    if (Number.isFinite(n) && n > seq) seq = n
+  }
+  return state.records.length
+}
+
+function persist(): void {
+  saveJson(STORAGE_KEY, state.records)
+}
 
 /** 把任意参数对象规整成可序列化的扁平字典（只保留标量） */
 export function toPlainParams(source: Record<string, unknown>): Record<string, string | number | boolean> {
@@ -85,16 +103,62 @@ export function addRecord(record: Omit<ExperimentRecord, 'id' | 'timestamp'>): E
   }
   state.records.push(full)
   if (state.records.length > MAX_RECORDS) state.records.splice(0, state.records.length - MAX_RECORDS)
+  persist()
   return full
 }
 
 export function removeRecord(id: string): void {
   const idx = state.records.findIndex((r) => r.id === id)
   if (idx >= 0) state.records.splice(idx, 1)
+  persist()
 }
 
 export function clearRecords(): void {
   state.records.length = 0
+  persist()
+}
+
+/**
+ * 导入外部 JSON 记录（用于换设备/备份恢复）。
+ * 只接受结构合法的记录，忽略缺字段的条目；返回实际导入条数。
+ */
+export function importRecords(payload: unknown): { imported: number; skipped: number } {
+  const list = (payload as { records?: unknown })?.records
+  if (!Array.isArray(list)) return { imported: 0, skipped: 0 }
+  let imported = 0
+  let skipped = 0
+  for (const raw of list) {
+    const r = raw as Partial<ExperimentRecord>
+    if (
+      typeof r?.id !== 'string' ||
+      typeof r?.moduleName !== 'string' ||
+      typeof r?.timestamp !== 'string' ||
+      !Array.isArray(r?.stats) ||
+      !r?.params ||
+      typeof r.params !== 'object'
+    ) {
+      skipped += 1
+      continue
+    }
+    state.records.push({
+      id: r.id,
+      moduleId: typeof r.moduleId === 'string' ? r.moduleId : 'unknown',
+      moduleName: r.moduleName,
+      timestamp: r.timestamp,
+      params: r.params as ExperimentRecord['params'],
+      stats: (r.stats as ExperimentRecord['stats']).filter(
+        (s) => s && typeof s.label === 'string' && typeof s.value === 'string',
+      ),
+      threshold: r.threshold ?? null,
+      anomalies: Array.isArray(r.anomalies) ? r.anomalies.filter((a) => typeof a === 'string') : [],
+      modelNotes: Array.isArray(r.modelNotes) ? r.modelNotes.filter((a) => typeof a === 'string') : [],
+      images: Array.isArray(r.images) ? r.images.filter((a) => typeof a === 'string') : [],
+    })
+    imported += 1
+  }
+  if (state.records.length > MAX_RECORDS) state.records.splice(0, state.records.length - MAX_RECORDS)
+  persist()
+  return { imported, skipped }
 }
 
 /** 模块内使用的记录器 */

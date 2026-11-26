@@ -3,6 +3,7 @@
  * 日志内容全部来自真实的参数与计算结果，不含预置假数据。
  */
 import { computed, onScopeDispose, reactive, watch } from 'vue'
+import { loadJson, removeKey, saveJson } from './persistence'
 
 export type LogLevel = 'info' | 'ok' | 'warn' | 'error'
 
@@ -16,9 +17,28 @@ export interface LogEntry {
 }
 
 const MAX_ENTRIES = 400
+const STORAGE_KEY = 'log'
 
 const state = reactive<{ entries: LogEntry[] }>({ entries: [] })
 let seq = 0
+let saveTimer: ReturnType<typeof setTimeout> | undefined
+
+/** 节流写入 localStorage：拖动滑杆时日志可能密集产生，避免每行都同步写盘 */
+function persistSoon(): void {
+  if (saveTimer) return
+  saveTimer = setTimeout(() => {
+    saveTimer = undefined
+    saveJson(STORAGE_KEY, state.entries)
+  }, 600)
+}
+
+/** 从本地恢复历史日志（页面刷新后仍能追溯上一次实验） */
+export function hydrateLog(): number {
+  const saved = loadJson<LogEntry[]>(STORAGE_KEY, [], Array.isArray)
+  state.entries.splice(0, state.entries.length, ...saved.slice(-MAX_ENTRIES))
+  for (const e of state.entries) if (typeof e.id === 'number' && e.id > seq) seq = e.id
+  return state.entries.length
+}
 
 function timestamp(): string {
   const d = new Date()
@@ -32,10 +52,12 @@ export function pushLog(level: LogLevel, module: string, text: string): void {
   if (state.entries.length > MAX_ENTRIES) {
     state.entries.splice(0, state.entries.length - MAX_ENTRIES)
   }
+  persistSoon()
 }
 
 export function clearLog(): void {
   state.entries.length = 0
+  removeKey(STORAGE_KEY)
   pushLog('info', '系统', '日志已清空')
 }
 

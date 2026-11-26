@@ -11,6 +11,7 @@ import {
   clearRecords,
   downloadCanvasPng,
   downloadText,
+  importRecords,
   openPrintableReport,
   recordsToCsv,
   recordsToHtml,
@@ -20,6 +21,7 @@ import {
   useExperiments,
   type ExperimentRecord,
 } from '@/stores/experiments'
+import { clearAll, storageUsageKb } from '@/stores/persistence'
 import { pushLog } from '@/stores/log'
 import { useNavigation } from '@/stores/navigation'
 
@@ -28,6 +30,46 @@ const { records } = useExperiments()
 const { setActiveModule } = useNavigation()
 const selectedId = ref<string | null>(null)
 const message = ref('')
+const usageKb = ref(storageUsageKb())
+
+function refreshUsage(): void {
+  usageKb.value = storageUsageKb()
+}
+
+/** 导入外部 JSON 记录（换设备/备份恢复） */
+function onImport(event: Event): void {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    try {
+      const parsed: unknown = JSON.parse(String(reader.result))
+      const { imported, skipped } = importRecords(parsed)
+      refreshUsage()
+      pushLog(
+        'ok',
+        MODULE_NAME,
+        `已导入 ${imported} 条实验记录${skipped ? `（跳过 ${skipped} 条格式不符）` : ''}`,
+      )
+      flash(imported ? `已导入 ${imported} 条记录` : '文件里没有可导入的记录')
+    } catch (error) {
+      pushLog('warn', MODULE_NAME, `导入失败：JSON 解析错误（${String(error)}）`)
+      flash('导入失败：不是合法的 JSON 文件')
+    }
+  }
+  reader.readAsText(file)
+  input.value = ''
+}
+
+function onClearLocal(): void {
+  const n = records.value.length
+  clearRecords()
+  clearAll()
+  refreshUsage()
+  pushLog('warn', MODULE_NAME, `已清空本机保存的实验记录与日志（${n} 条记录）`)
+  flash('已清空本机数据')
+}
 
 /** 空状态下的引导：直接跳到实验模块去记录 */
 function goRecord(): void {
@@ -126,6 +168,8 @@ function judgeOf(r: ExperimentRecord): { text: string; cls: string } {
         <span class="badge badge--accent">{{ records.length }} 条记录</span>
       </div>
       <div class="rp__actions">
+        <input id="report-import" type="file" accept="application/json,.json" class="sr-only" @change="onImport" />
+        <label class="btn btn--sm" for="report-import" title="从 JSON 恢复记录（换设备/备份）">导入 JSON</label>
         <button class="btn btn--sm" @click="exportCsv">导出 CSV</button>
         <button class="btn btn--sm" @click="exportJson">导出 JSON</button>
         <button class="btn btn--sm" @click="exportPng">导出 PNG</button>
@@ -133,6 +177,16 @@ function judgeOf(r: ExperimentRecord): { text: string; cls: string } {
         <button class="btn btn--sm btn--ghost" :disabled="!records.length" @click="onClear">清空</button>
       </div>
     </header>
+
+    <div class="rp__storage">
+      <span class="rp__storage-icon">🔒</span>
+      <span>
+        所有记录与日志只保存在<strong>本机浏览器</strong>（localStorage，占用 {{ usageKb }} KB），不上传任何服务器；
+        上传的图片也只在本地处理。清除浏览器数据会丢失记录，请用「导出 JSON」备份。
+      </span>
+      <span class="panel__spacer" />
+      <button class="btn btn--sm btn--ghost" @click="onClearLocal">清空本机数据</button>
+    </div>
 
     <div v-if="message" class="rp__msg callout callout--info">
       <span class="callout__icon">i</span>
@@ -291,6 +345,29 @@ function judgeOf(r: ExperimentRecord): { text: string; cls: string } {
 
 .rp__msg {
   margin: 8px 14px 0;
+}
+
+.rp__storage {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 14px 0;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.rp__storage strong {
+  color: var(--text-1);
+}
+
+.rp__storage-icon {
+  flex: none;
 }
 
 .rp__body {
