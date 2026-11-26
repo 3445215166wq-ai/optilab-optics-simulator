@@ -186,7 +186,7 @@ const recorder = useRecorder({
 
 function recordExperiment(): void {
   const rec = recorder.capture()
-  pushLog('ok', MODULE_NAME, `已记录实验 ${rec.id}（可在「测试报告」模块查看与导出）`)
+  pushLog('ok', MODULE_NAME, `已记录实验 ${rec.id}（可在「测试报告」模块查看与导出）`, { manual: true })
 }
 
 useExperimentLog(MODULE_NAME, () => {

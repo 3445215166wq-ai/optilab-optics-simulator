@@ -196,7 +196,7 @@ npm test
 | 项目 | 当前状态 |
 | --- | --- |
 | 类型检查 `vue-tsc --noEmit` | ✅ 0 error（`strict` + `noUnusedLocals` + `verbatimModuleSyntax`） |
-| 单元测试 `vitest run` | ✅ 16 个测试文件 / **197 个用例**全部通过（含 FFT、图像处理与解析解对照） |
+| 单元测试 `vitest run` | ✅ 17 个测试文件 / **207 个用例**全部通过（含 FFT、图像处理、日志模式与解析解对照） |
 | 生产构建 | ✅ 通过（产物 gzip 后 JS ≈ 293 kB，CSS ≈ 6 kB） |
 | 浏览器冒烟（Chrome headless + Playwright） | ✅ 无 console error / pageerror；画布内容非空（像素采样）；深浅主题、模块切换、预设、曲线、全反射演示均可操作 |
 | 输入合法性 | 参数层夹取 + 核心层结构化错误 + 界面红色提示，三层兜底 |

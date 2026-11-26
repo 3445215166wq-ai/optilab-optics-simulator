@@ -22,7 +22,7 @@
 
 - 仓库：<https://github.com/3445215166wq-ai/optilab-optics-simulator>
 - 部署方式：GitHub Actions（`.github/workflows/deploy.yml`），每次 `git push` 到 `main` 自动跑
-  `typecheck → 197 个单测 → build → 发布`，**测试不过不会上线**；
+  `typecheck → 207 个单测 → build → 发布`，**测试不过不会上线**；
 - 首次部署时踩过的两个坑（已修）：① lockfile 里残留 `--no-save` 装的 `playwright-core` 会让 `npm ci` 报不同步；
   ② `setup-node` 用 Node 20 低于 Vite 8 要求（^20.19 / ≥22.12），已改 Node 22；③ 务必**先启用 Pages（`build_type=workflow`）再 push**，
   否则 `deploy-pages` 会因「Pages site 未启用」失败。
@@ -41,7 +41,7 @@ npm run preview
 
 ## 3. 三分钟演示路径（照着点就行）
 
-**开场一句话**：「这是一个纯前端的光学仿真平台，7 个实验模块 + 1 个知识库，所有计算在浏览器本地完成，197 个单元测试保证物理正确性。」
+**开场一句话**：「这是一个纯前端的光学仿真平台，7 个实验模块 + 1 个知识库，所有计算在浏览器本地完成，207 个单元测试保证物理正确性。」
 
 | 时间 | 动作 | 要说的点 |
 | --- | --- | --- |
@@ -58,7 +58,7 @@ npm run preview
 在 §3 之后追加两条：
 
 1. **打开 `src/core/optics/psfMtf.ts`**：讲光瞳构建（4×4 子采样抗锯齿）、坐标标定 `dx = 2RλN/n`、以及为什么 MTF 横轴容易错。
-2. **终端跑 `npm test`**：197 个用例 3 秒跑完，指出 `psfMtf.test.ts` 里「数值 MTF vs 解析 OTF」那条断言——**先用解析解校准数值引擎，再让它算没有解析解的离焦**。
+2. **终端跑 `npm test`**：207 个用例 3 秒跑完，指出 `psfMtf.test.ts` 里「数值 MTF vs 解析 OTF」那条断言——**先用解析解校准数值引擎，再让它算没有解析解的离焦**。
 
 ---
 
