@@ -41,6 +41,7 @@ import { drawGrayImage, drawZAxisGauge, fitRect } from '@/render/imageView'
 import type { ParamValue } from '@/components/ui/params'
 import type { StatItem } from '@/components/ui/statTypes'
 import { pushLog, useExperimentLog } from '@/stores/log'
+import { useRecorder } from '@/stores/experiments'
 import { useTheme } from '@/stores/theme'
 
 const MODULE_NAME = '自动对焦'
@@ -350,6 +351,36 @@ const advancedStats = computed<StatItem[]>(() => {
   ]
 })
 
+const recorder = useRecorder({
+  moduleId: 'autofocus',
+  moduleName: MODULE_NAME,
+  params: () => ({ ...params }),
+  stats: () => heroStats.value,
+  anomalies: () => [
+    ...(searchResult.value?.errors ?? []),
+    ...(repeatStats.value?.errors ?? []),
+  ],
+  threshold: () => {
+    const r = searchResult.value
+    if (!r || !r.ok) return null
+    return {
+      label: '对焦误差 |ΔZ|',
+      value: fmt(r.errorMm * 1e3, 2),
+      unit: ' μm',
+      passed: r.errorMm <= params.thresholdMm,
+    }
+  },
+  modelNotes: [
+    '虚拟 Z 轴平台为仿真设备；离焦采用高斯模糊近似（图像退化近似模型），非严格物理光学。',
+    '误差与统计数据均由本模块程序实算；噪声与定位误差由带种子 PRNG 生成，同种子可复现。',
+  ],
+})
+
+function recordExperiment(): void {
+  const rec = recorder.capture()
+  pushLog('ok', MODULE_NAME, `已记录实验 ${rec.id}（可在「测试报告」模块查看与导出）`)
+}
+
 useExperimentLog(MODULE_NAME, () => {
   const r = searchResult.value
   if (!r || !r.ok) return null
@@ -391,6 +422,9 @@ onMounted(() => {
                 重复性测试 ×{{ params.repeatRuns }}
               </button>
               <button class="btn btn--sm btn--ghost" @click="resetParams">重置</button>
+              <button class="btn btn--sm" title="把当前参数与结果存入测试报告" @click="recordExperiment">
+                记录实验
+              </button>
             </div>
             <div class="stage__badges">
               <span class="badge badge--warn">仿真设备 SIMULATED</span>

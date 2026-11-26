@@ -1,20 +1,21 @@
 <script setup lang="ts">
 /** 应用外壳：品牌区 + 顶栏 + 左侧模块导航 + 主工作区 */
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import AppBrand from '@/components/layout/AppBrand.vue'
 import AppTopbar from '@/components/layout/AppTopbar.vue'
 import ModuleNav from '@/components/layout/ModuleNav.vue'
-import { DEFAULT_MODULE_ID, MODULES, findModule } from '@/modules/registry'
+import { MODULES, findModule } from '@/modules/registry'
 import { pushLog } from '@/stores/log'
+import { useNavigation } from '@/stores/navigation'
 
-const activeId = ref(DEFAULT_MODULE_ID)
+const { activeModuleId: activeId, setActiveModule } = useNavigation()
 const active = computed(() => findModule(activeId.value))
 
 function select(id: string): void {
   const target = findModule(id)
   if (!target || target.status !== 'ready') return
   if (activeId.value === id) return
-  activeId.value = id
+  setActiveModule(id)
   pushLog('info', '系统', `切换到「${target.title} / ${target.titleEn}」`)
 }
 </script>

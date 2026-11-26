@@ -27,6 +27,7 @@ import { drawDiffractionScene } from '@/render/diffractionScene'
 import type { ParamValue } from '@/components/ui/params'
 import type { StatItem } from '@/components/ui/statTypes'
 import { pushLog, useExperimentLog } from '@/stores/log'
+import { useRecorder } from '@/stores/experiments'
 import { useTheme } from '@/stores/theme'
 
 const MODULE_NAME = '衍射与分辨率'
@@ -174,6 +175,20 @@ const advancedStats = computed<StatItem[]>(() => {
   ]
 })
 
+const recorder = useRecorder({
+  moduleId: 'diffraction',
+  moduleName: MODULE_NAME,
+  params: () => params,
+  stats: () => heroStats.value,
+  anomalies: () => [...result.value.errors, ...result.value.warnings],
+  modelNotes: ['理想圆形孔径解析模型：无像差、非相干成像，不含探测器像元 MTF 与采样影响。'],
+})
+
+function recordExperiment(): void {
+  const rec = recorder.capture()
+  pushLog('ok', MODULE_NAME, `已记录实验 ${rec.id}（可在「测试报告」模块查看与导出）`)
+}
+
 useExperimentLog(MODULE_NAME, () => {
   const r = result.value
   if (!r.ok) return null
@@ -213,6 +228,9 @@ onMounted(() => {
                 判据圆
               </button>
               <button class="btn btn--sm btn--ghost" @click="resetParams">重置</button>
+              <button class="btn btn--sm" title="把当前参数与结果存入测试报告" @click="recordExperiment">
+                记录实验
+              </button>
             </div>
             <div class="stage__badges">
               <span class="badge badge--accent">艾里斑 · 解析模型</span>

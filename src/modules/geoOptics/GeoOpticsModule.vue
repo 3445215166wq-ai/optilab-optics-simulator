@@ -38,6 +38,7 @@ import { planScale } from '@/render/viewport'
 import type { ParamValue } from '@/components/ui/params'
 import type { StatItem } from '@/components/ui/statTypes'
 import { pushLog, useExperimentLog } from '@/stores/log'
+import { useRecorder } from '@/stores/experiments'
 import { useTheme } from '@/stores/theme'
 
 const MODULE_NAME = '几何光学'
@@ -260,6 +261,20 @@ const advancedStats = computed<StatItem[]>(() => {
   ]
 })
 
+const recorder = useRecorder({
+  moduleId: 'geo-optics',
+  moduleName: MODULE_NAME,
+  params: () => params,
+  stats: () => heroStats.value,
+  anomalies: () => [...result.value.errors, ...result.value.warnings],
+  modelNotes: ['理想薄透镜近轴模型：不含像差、衍射与镀膜；光路纵向拉伸仅影响显示，不改变数值结果。'],
+})
+
+function recordExperiment(): void {
+  const rec = recorder.capture()
+  pushLog('ok', MODULE_NAME, `已记录实验 ${rec.id}（可在「测试报告」模块查看与导出）`)
+}
+
 useExperimentLog(MODULE_NAME, () => {
   const r = result.value
   if (!r.ok) return null
@@ -309,6 +324,9 @@ onMounted(() => {
               </button>
               <button class="btn btn--sm btn--ghost" title="恢复默认参数" @click="resetParams">
                 重置
+              </button>
+              <button class="btn btn--sm" title="把当前参数与结果存入测试报告" @click="recordExperiment">
+                记录实验
               </button>
             </div>
             <div class="stage__badges">

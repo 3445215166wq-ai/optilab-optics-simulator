@@ -7,9 +7,11 @@ import type { ModuleMeta } from './types'
 import AutofocusModule from './autofocus/AutofocusModule.vue'
 import DiffractionModule from './diffraction/DiffractionModule.vue'
 import GeoOpticsModule from './geoOptics/GeoOpticsModule.vue'
+import KnowledgeModule from './knowledge/KnowledgeModule.vue'
 import PsfMtfModule from './psfMtf/PsfMtfModule.vue'
 import QualityModule from './quality/QualityModule.vue'
 import RefractionModule from './refraction/RefractionModule.vue'
+import ReportModule from './report/ReportModule.vue'
 
 export const MODULES: ModuleMeta[] = [
   {
@@ -85,8 +87,20 @@ export const MODULES: ModuleMeta[] = [
     titleEn: 'Automated Test Report',
     short: '测试报告',
     phase: 4,
-    status: 'planned',
-    summary: '实验记录、CSV/JSON/PNG 导出与可打印报告（阶段四实现）',
+    status: 'ready',
+    summary: '汇总各模块记录的参数/结果/判定/异常，导出 CSV、JSON、PNG 与可打印 HTML 报告',
+    component: ReportModule,
+  },
+  {
+    id: 'knowledge',
+    index: '八',
+    title: '光学知识库',
+    titleEn: 'Optics Knowledge Base',
+    short: '光学知识库',
+    phase: 4,
+    status: 'ready',
+    summary: '13 个知识点：通俗解释 / 专业定义 / 公式 / 单位 / 适用条件 / 工业应用 / 常见问题',
+    component: KnowledgeModule,
   },
 ]
 

@@ -27,6 +27,7 @@ import { drawPsfScene } from '@/render/psfScene'
 import type { ParamValue } from '@/components/ui/params'
 import type { StatItem } from '@/components/ui/statTypes'
 import { pushLog, useExperimentLog } from '@/stores/log'
+import { useRecorder } from '@/stores/experiments'
 import { useTheme } from '@/stores/theme'
 
 const MODULE_NAME = 'PSF / MTF'
@@ -172,6 +173,22 @@ const advancedStats = computed<StatItem[]>(() => {
   ]
 })
 
+const recorder = useRecorder({
+  moduleId: 'psf-mtf',
+  moduleName: MODULE_NAME,
+  params: () => params,
+  stats: () => heroStats.value,
+  anomalies: () => [...result.value.errors, ...result.value.warnings],
+  modelNotes: [
+    '复光瞳 + FFT 数值模型：仅含离焦一种像差，不含球差/彗差/色差与探测器像元 MTF；圆孔边界用子采样近似，MTF 误差约 1%。',
+  ],
+})
+
+function recordExperiment(): void {
+  const rec = recorder.capture()
+  pushLog('ok', MODULE_NAME, `已记录实验 ${rec.id}（可在「测试报告」模块查看与导出）`)
+}
+
 useExperimentLog(MODULE_NAME, () => {
   const r = result.value
   if (!r.ok) return null
@@ -211,6 +228,9 @@ onMounted(() => {
                 艾里参考圆
               </button>
               <button class="btn btn--sm btn--ghost" @click="resetParams">重置</button>
+              <button class="btn btn--sm" title="把当前参数与结果存入测试报告" @click="recordExperiment">
+                记录实验
+              </button>
             </div>
             <div class="stage__badges">
               <span class="badge badge--accent">复光瞳 + FFT 数值模型</span>

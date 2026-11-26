@@ -37,6 +37,7 @@ import { drawGrayImage, fitRect } from '@/render/imageView'
 import type { ParamValue } from '@/components/ui/params'
 import type { StatItem } from '@/components/ui/statTypes'
 import { pushLog, useExperimentLog } from '@/stores/log'
+import { useRecorder } from '@/stores/experiments'
 import { useTheme } from '@/stores/theme'
 
 const MODULE_NAME = '成像质量'
@@ -300,6 +301,23 @@ const sharpnessStats = computed<StatItem[]>(() => {
   ]
 })
 
+const recorder = useRecorder({
+  moduleId: 'image-quality',
+  moduleName: MODULE_NAME,
+  params: () => ({ ...params }),
+  stats: () => heroStats.value,
+  anomalies: () => degradedResult.value?.applied.length ? [] : [],
+  modelNotes: [
+    '离焦为高斯模糊近似（图像退化近似模型），非严格物理光学；运动模糊为线段 PSF 卷积。',
+    '缺陷检测模型未接入：本模块不产生任何检测准确率 / 漏检率 / 识别结果。',
+  ],
+})
+
+function recordExperiment(): void {
+  const rec = recorder.capture()
+  pushLog('ok', MODULE_NAME, `已记录实验 ${rec.id}（可在「测试报告」模块查看与导出）`)
+}
+
 useExperimentLog(MODULE_NAME, () => {
   const m = metrics.value
   if (!m) return null
@@ -339,6 +357,9 @@ onMounted(() => {
                 用内置靶标
               </button>
               <button class="btn btn--sm btn--ghost" @click="resetParams">重置</button>
+              <button class="btn btn--sm" title="把当前参数与结果存入测试报告" @click="recordExperiment">
+                记录实验
+              </button>
             </div>
             <div class="stage__badges">
               <span class="badge badge--warn">仿真设备 SIMULATED</span>
