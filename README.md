@@ -42,8 +42,8 @@
 | --- | --- | --- | --- |
 | 一 | ① 几何光学与光线追迹 | ✅ 已完成 | 理想薄透镜近轴成像：像距、放大率、实像/虚像、三条主光线、光锥追迹、自动缩放 |
 | 一 | ② 光的传播与折射 | ✅ 已完成 | 反射定律、斯涅尔定律、临界角与全反射、菲涅尔反射率、布儒斯特角 |
-| 二 | ③ 衍射与光学分辨率 | ⏳ 规划中 | 艾里斑、瑞利判据、截止空间频率 |
-| 二 | ④ PSF 与 MTF 性能分析 | ⏳ 规划中 | 复光瞳 + 傅里叶变换、离焦相位、MTF50 |
+| 二 | ③ 衍射与光学分辨率 | ✅ 已完成 | 艾里斑解析模型（J₁ 数值计算）、瑞利判据、非相干截止频率、**物方/像方并列换算** |
+| 二 | ④ PSF 与 MTF 性能分析 | ✅ 已完成 | 复光瞳 `circ·exp(i2πW₂₀ρ²)` + 自实现二维 FFT → PSF 热力图、MTF 曲线、衍射极限对照、MTF50 |
 | 三 | ⑤ 自动对焦与设备性能测试 | ⏳ 规划中 | 清晰度评价函数、Z 轴搜索、重复性统计 |
 | 三 | ⑥ 工业视觉成像质量测试 | ⏳ 规划中 | 模糊/曝光/噪声退化、PSNR、SSIM |
 | 四 | ⑦ 自动化测试报告 | ⏳ 规划中 | CSV/JSON/PNG 导出、可打印报告 |
@@ -79,6 +79,14 @@
 | --- | --- |
 | ![折射](docs/screenshots/05-refraction.png) | ![TIR](docs/screenshots/06-refraction-tir.png) |
 
+| 衍射：艾里斑（对数显示可见暗环） | 径向光强与分辨率家族曲线 |
+| --- | --- |
+| ![衍射](docs/screenshots/12-diffraction-charts.png) | ![光强](docs/screenshots/11-diffraction-log.png) |
+
+| PSF / MTF（F/8 焦平面） | MTF 曲线与衍射极限对照 |
+| --- | --- |
+| ![PSF](docs/screenshots/14-mtf-charts.png) | ![MTF](docs/screenshots/13-psf-mtf.png) |
+
 | 菲涅尔曲线 | 窄屏（移动端基本浏览） |
 | --- | --- |
 | ![菲涅尔](docs/screenshots/07-refraction-charts.png) | ![移动端](docs/screenshots/08-mobile.png) |
@@ -93,6 +101,7 @@
 | 绘图 | Canvas 2D（光路/网格/标注）+ SVG（Logo） | 光路需要逐帧精确控制坐标与线型，Canvas 比 DOM/SVG 更合适 |
 | 图表 | ECharts 6（按需引入） | 科学曲线、坐标轴、markLine/markPoint 标注 |
 | 测试 | Vitest 5 | 光学算法纯函数化，Node 环境直接跑，无需浏览器 |
+| 数值计算 | 自实现 radix-2 FFT + J₁ 贝塞尔函数 | 不引第三方数学库：便于用解析解做单元测试，也便于将来迁入 Web Worker |
 | 样式 | 原生 CSS + CSS 变量（设计令牌） | 深/浅主题靠 `data-theme` 切换变量，Canvas 侧用对齐的调色板对象 |
 
 无后端、无数据库、无付费 API、无商业软件依赖。
@@ -137,6 +146,8 @@
 | --- | --- | --- | --- |
 | 几何光学 | 理想薄透镜 + 近轴近似 | `1/f = 1/u + 1/v`、`m = h′/h = −v/u`、牛顿公式 `(u−f)(v−f)=f²`；名义 F 数 `N = |f|/D`、有效 F 数 `N_eff = |v|/D`（实像时 `= N(1+|m|)`） | 与解析解互校；主光线几何不变量（平行光轴光线必过 F′、过光心光线方向不变等）用断言验证 |
 | 折射 | 平面界面 + 无吸收各向同性介质 | `n₁sinθ₁ = n₂sinθ₂`、`θc = arcsin(n₂/n₁)`、`θB = arctan(n₂/n₁)`、菲涅尔 `Rs/Rp` | 斯涅尔等式残差 &lt; 1e-12；正入射退化为 `((n₁−n₂)/(n₁+n₂))²`；`R+T=1`；布儒斯特角处 `Rp=0`；光路可逆 |
+| 衍射 | 理想圆孔的夫琅禾费衍射 | `I(r)=I₀[2J₁(v)/v]²`、`r₁=1.22λN`、`Δ=r₁`（瑞利）、`ν_c=1/(λN)`；物方量 = 像方量 ÷ \|m\| | J₁ 对照零点/极大/级数；二维图样对称性；物方/像方换算断言；`f_c≈2NA/λ` 的近轴退化也被断言 |
+| PSF / MTF | 复光瞳 + 二维 FFT | `P=circ(ρ)exp(i2πW₂₀ρ²)`、`PSF=|FT{P}|²`、`OTF=FT{PSF}/FT{PSF}(0)`；`W₂₀=Δz/(8λN²)` | W₂₀=0 时数值 PSF 与解析艾里斑对照（绝对偏差≈0.004）、数值 MTF 与解析 `(2/π)[arccos t−t√(1−t²)]` 对照（**&lt;1.5%**）、MTF50 偏差 &lt;2%、焦深判据自洽 |
 
 完整推导、符号约定、单位表、边界条件与数值保护策略见 [`docs/OPTICS.md`](docs/OPTICS.md)。
 
@@ -168,8 +179,8 @@ npm test
 | 项目 | 当前状态 |
 | --- | --- |
 | 类型检查 `vue-tsc --noEmit` | ✅ 0 error（`strict` + `noUnusedLocals` + `verbatimModuleSyntax`） |
-| 单元测试 `vitest run` | ✅ 5 个测试文件 / 64 个用例全部通过 |
-| 生产构建 | ✅ 通过（产物 gzip 后 JS ≈ 249 kB，CSS ≈ 5 kB） |
+| 单元测试 `vitest run` | ✅ 10 个测试文件 / **129 个用例**全部通过（含 FFT 与解析解对照） |
+| 生产构建 | ✅ 通过（产物 gzip 后 JS ≈ 270 kB，CSS ≈ 6 kB） |
 | 浏览器冒烟（Chrome headless + Playwright） | ✅ 无 console error / pageerror；画布内容非空（像素采样）；深浅主题、模块切换、预设、曲线、全反射演示均可操作 |
 | 输入合法性 | 参数层夹取 + 核心层结构化错误 + 界面红色提示，三层兜底 |
 

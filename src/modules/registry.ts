@@ -4,7 +4,9 @@
  * 避免出现「看起来能点但没功能」的假按钮。
  */
 import type { ModuleMeta } from './types'
+import DiffractionModule from './diffraction/DiffractionModule.vue'
 import GeoOpticsModule from './geoOptics/GeoOpticsModule.vue'
+import PsfMtfModule from './psfMtf/PsfMtfModule.vue'
 import RefractionModule from './refraction/RefractionModule.vue'
 
 export const MODULES: ModuleMeta[] = [
@@ -37,8 +39,9 @@ export const MODULES: ModuleMeta[] = [
     titleEn: 'Diffraction & Resolution',
     short: '衍射与分辨率',
     phase: 2,
-    status: 'planned',
-    summary: '艾里斑、瑞利判据与截止空间频率（阶段二实现）',
+    status: 'ready',
+    summary: '艾里斑解析模型、瑞利判据、截止空间频率，明确区分物方与像方参数',
+    component: DiffractionModule,
   },
   {
     id: 'psf-mtf',
@@ -47,8 +50,9 @@ export const MODULES: ModuleMeta[] = [
     titleEn: 'PSF & MTF Analysis',
     short: 'PSF / MTF',
     phase: 2,
-    status: 'planned',
-    summary: '复光瞳傅里叶变换模型、离焦相位与 MTF 曲线（阶段二实现）',
+    status: 'ready',
+    summary: '复光瞳 + 二维 FFT 数值模型：离焦 PSF 热力图、MTF 曲线、衍射极限对照与 MTF50',
+    component: PsfMtfModule,
   },
   {
     id: 'autofocus',
