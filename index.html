@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="OptiLab — 交互式光学成像与性能分析仿真平台：几何光学光线追迹、折射与全反射、衍射与分辨率、PSF/MTF、自动对焦与成像质量测试（教学与求职作品用途，仿真结果非商业级光学设计软件）。"
+    />
+    <title>OptiLab · 交互式光学成像与性能分析仿真平台</title>
+    <script>
+      // 在首帧渲染前应用主题，避免深/浅色闪烁（FOUC）
+      (function () {
+        try {
+          var saved = localStorage.getItem('optilab.theme');
+          var theme;
+          if (saved === 'dark' || saved === 'light') {
+            theme = saved;
+          } else {
+            var mq = window.matchMedia('(prefers-color-scheme: light)');
+            theme = mq.matches ? 'light' : 'dark';
+          }
+          document.documentElement.dataset.theme = theme;
+        } catch (e) {
+          document.documentElement.dataset.theme = 'dark';
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <noscript>OptiLab 需要启用 JavaScript 才能运行光学仿真。</noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

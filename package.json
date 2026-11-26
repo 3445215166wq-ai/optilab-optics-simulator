@@ -1,0 +1,37 @@
+{
+  "name": "optilab",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "OptiLab — 交互式光学成像与性能分析仿真平台 (Interactive Optics Imaging & Performance Analysis Simulator)",
+  "keywords": [
+    "optics",
+    "ray-tracing",
+    "mtf",
+    "psf",
+    "autofocus",
+    "machine-vision",
+    "simulation"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "echarts": "^6.1.0",
+    "vue": "^3.5.46"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.11",
+    "@vitejs/plugin-vue": "^6.0.11",
+    "typescript": "^6.0.3",
+    "vite": "^8.4.0",
+    "vitest": "^5.1.2",
+    "vue-tsc": "^3.3.14"
+  }
+}

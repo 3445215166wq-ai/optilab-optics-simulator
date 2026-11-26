@@ -1,0 +1,130 @@
+/* =============================================================
+ * OptiLab 设计令牌 Design Tokens
+ * 工业仪器 / 科研仿真软件风格：深蓝灰、低饱和、信息密度优先。
+ * 所有颜色都成对提供：深色主题 (dark) 与浅色主题 (light)。
+ * ============================================================= */
+
+:root {
+  /* 字体 */
+  --font-sans: 'Segoe UI', 'Inter', system-ui, -apple-system, 'Noto Sans SC',
+    'Microsoft YaHei', 'PingFang SC', sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', 'JetBrains Mono', 'SFMono-Regular', Consolas,
+    'Courier New', monospace;
+
+  /* 布局尺寸 */
+  --nav-w: 216px;
+  --panel-w: 322px;
+  --topbar-h: 46px;
+  --radius-sm: 3px;
+  --radius: 5px;
+  --radius-lg: 8px;
+
+  /* 字号 */
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
+  --fs-xl: 19px;
+
+  /* 动效（保持克制，仅用于状态反馈） */
+  --t-fast: 110ms ease;
+  --t-base: 180ms ease;
+}
+
+/* ---------------------------- 深色主题 ---------------------------- */
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg-deep: #080d13;
+  --bg-app: #0c131a;
+  --bg-panel: #111a23;
+  --bg-panel-2: #16202b;
+  --bg-elevated: #1a2632;
+  --bg-input: #0a1118;
+  --bg-hover: rgba(255, 255, 255, 0.045);
+  --bg-active: rgba(63, 155, 224, 0.14);
+
+  --border: #1f2c38;
+  --border-strong: #2e4356;
+  --border-input: #27384a;
+
+  --text-1: #dbe6f1;
+  --text-2: #9db1c3;
+  --text-3: #6b8199;
+  --text-inverse: #0b1219;
+
+  --accent: #3f9be0;
+  --accent-strong: #5cb0ef;
+  --accent-dim: #25628f;
+  --accent-soft: rgba(63, 155, 224, 0.13);
+
+  --ok: #35b381;
+  --ok-soft: rgba(53, 179, 129, 0.13);
+  --warn: #d8a13a;
+  --warn-soft: rgba(216, 161, 58, 0.13);
+  --err: #e0665a;
+  --err-soft: rgba(224, 102, 90, 0.13);
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --grid-line: rgba(120, 160, 195, 0.09);
+  --grid-line-strong: rgba(120, 160, 195, 0.18);
+
+  /* 光路配色（Canvas 渲染与图例共用） */
+  --ray-incident: #e8b64c;
+  --ray-refracted: #4fc08d;
+  --ray-reflected: #4e9fe0;
+  --ray-center: #b386e8;
+  --ray-virtual: #7e8fa3;
+  --ray-blocked: #e0665a;
+  --ray-axis: #4a6274;
+}
+
+/* ---------------------------- 浅色主题 ---------------------------- */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg-deep: #e7edf3;
+  --bg-app: #f2f6fa;
+  --bg-panel: #ffffff;
+  --bg-panel-2: #f6f9fc;
+  --bg-elevated: #ffffff;
+  --bg-input: #ffffff;
+  --bg-hover: rgba(16, 36, 56, 0.045);
+  --bg-active: rgba(31, 120, 189, 0.1);
+
+  --border: #d7e0e9;
+  --border-strong: #b3c3d2;
+  --border-input: #c6d4e0;
+
+  --text-1: #14202b;
+  --text-2: #48607a;
+  --text-3: #7a8fa5;
+  --text-inverse: #ffffff;
+
+  --accent: #1f78bd;
+  --accent-strong: #155f9b;
+  --accent-dim: #7fb4d9;
+  --accent-soft: rgba(31, 120, 189, 0.1);
+
+  --ok: #12855c;
+  --ok-soft: rgba(18, 133, 92, 0.1);
+  --warn: #9c6b16;
+  --warn-soft: rgba(156, 107, 22, 0.12);
+  --err: #c0392f;
+  --err-soft: rgba(192, 57, 47, 0.1);
+
+  --shadow-1: 0 1px 2px rgba(20, 40, 60, 0.08);
+  --shadow-2: 0 8px 22px rgba(20, 40, 60, 0.12);
+  --grid-line: rgba(30, 70, 110, 0.08);
+  --grid-line-strong: rgba(30, 70, 110, 0.16);
+
+  --ray-incident: #b5811a;
+  --ray-refracted: #17795c;
+  --ray-reflected: #1c6fae;
+  --ray-center: #7a4bb5;
+  --ray-virtual: #7d8fa1;
+  --ray-blocked: #bb3b30;
+  --ray-axis: #90a4b6;
+}
