@@ -9,3 +9,6 @@ Thumbs.db
 !.vscode/extensions.json
 .idea/
 *.log
+
+# 本地 AI 助手状态（不属于项目代码）
+.dsh-meow/
