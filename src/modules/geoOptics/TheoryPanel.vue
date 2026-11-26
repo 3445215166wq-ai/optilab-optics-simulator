@@ -5,7 +5,7 @@ import FoldSection from '@/components/ui/FoldSection.vue'
 
 <template>
   <div class="theory">
-    <FoldSection title="原理与公式" title-en="Principle & formulas" open>
+    <FoldSection title="原理与公式" title-en="Principle & formulas">
       <p>
         <strong>通俗解释：</strong>凸透镜把从物点发散的球面波前「掰」回会聚状态，出射光线重新交于一点，
         这点就是实像；如果光线还没等会聚就被观察者截住（或本来就是发散的），人眼顺着光线反向看去，
@@ -23,8 +23,9 @@ import FoldSection from '@/components/ui/FoldSection.vue'
         v &gt; 0 为实像（透镜右侧），v &lt; 0 为虚像（透镜左侧）。m &lt; 0 表示倒立，m &gt; 0 表示正立。
       </p>
       <p>
-        <strong>单位：</strong>本模块所有长度统一为 <strong>mm</strong>；F/#（相对孔径倒数）= |f| / D 为无量纲量；
-        数值孔径 NA ≈ sin(θ) = (D/2) / √((D/2)² + u²)（近轴近似下用 tan 代替 sin）。
+        <strong>单位：</strong>本模块所有长度统一为 <strong>mm</strong>；F 数 N = |f|/D 与数值孔径 NA = n·sinθ
+        都是无量纲量（本模型默认空气，n ≈ 1）。
+        物方 NA ≈ sin(atan(D/2u))，像方 NA′ ≈ sin(atan(D/2|v|))，两者只在近轴条件下成立。
       </p>
     </FoldSection>
 
@@ -39,8 +40,8 @@ import FoldSection from '@/components/ui/FoldSection.vue'
       </ul>
       <p>
         <strong>适用条件：</strong>单色光 / 近轴（小孔径、小视场）/ 薄透镜 / 无像差。
-        当 F/# 很小（大孔径）或视场很大时，球差、彗差、场曲会显著偏离本模型，
-        此时必须使用实际光线追迹与像差理论，本平台不作商业级设计用途。
+        当 F 数很小（大孔径）、视场很大或物距很小时，球差、彗差、场曲与衍射会显著偏离本模型，
+        此时需要实际光线追迹与像差理论（以及阶段二的 PSF/MTF 分析），本平台不作商业级设计用途。
       </p>
     </FoldSection>
 
@@ -61,8 +62,24 @@ import FoldSection from '@/components/ui/FoldSection.vue'
       <p class="a">A：出射光线平行于光轴，像在无穷远，不存在有限像距；此时高斯公式分母为零，必须按极限讨论，工程上对应准直器工况。</p>
       <p><span class="q">Q：为什么实像一定倒立、虚像一定正立？</span></p>
       <p class="a">A：由 m = −v/u 可知：实像 v &gt; 0 ⇒ m &lt; 0 必倒立；虚像 v &lt; 0 ⇒ m &gt; 0 必正立。这是单薄透镜成像的必然结果。</p>
-      <p><span class="q">Q：F/# 是什么？它对工程意味着什么？</span></p>
-      <p class="a">A：F/# = f/D，表示相对孔径的倒数。F/# 越小，进光量越大（∝ 1/F#²）、衍射极限分辨率越高，但景深越小、像差越难校正；机器视觉选镜头时 F/# 与景深、照度、衍射极限互相制约。</p>
+      <p><span class="q">Q：F 数是什么？它对工程意味着什么？</span></p>
+      <p class="a">
+        A：F 数（f-number）N = f/D，是相对孔径 D/f 的倒数，`F/#` 中的 # 即 number。N 越小，相对孔径越大：
+        在相同物面亮度下像面照度近似 ∝ 1/N²，衍射受限的斑径也越小；但同时景深变浅、像差更难校正 ——
+        机器视觉选镜头就是在这三者之间做权衡。
+      </p>
+      <p><span class="q">Q：名义 F 数与有效 F 数有什么区别？</span></p>
+      <p class="a">
+        A：名义 F 数 N = f/D 按无限共轭（物在无穷远）定义，是镜头铭牌上的值；实际工作中物在有限距离，
+        真正决定像面照度与衍射斑尺寸的是有效（工作）F 数 N_eff = |v|/D；成实像时它可写成 N·(1 + |m|)，
+        例如 1:1 成像（u = 2f）时 N_eff = 2N，照度约降到 1/4。两者只在无穷远成像时相等。
+        虚像情形出射光是发散的，N_eff 只作为像方锥的等效量，上述 N·(1+|m|) 关系不再适用。
+      </p>
+      <p><span class="q">Q：数值孔径 NA 的定义里为什么有折射率？</span></p>
+      <p class="a">
+        A：NA = n·sinθ，n 是光线所在介质的折射率。空气中 n ≈ 1，所以常被省略；但在浸液物镜（油浸、水浸）
+        中这项至关重要，NA 直接决定分辨率极限（≈0.61λ/NA）与集光能力（∝NA²）。
+      </p>
       <p><span class="q">Q：物像共轭是什么意思？工程上有什么用？</span></p>
       <p class="a">A：满足 1/f = 1/u + 1/v 的 (u, v) 组合互为共轭，可互换物像位置而保持成像关系，这是光学系统「可逆性」的体现，也是双远心、齐焦设计的理论基础之一。</p>
       <p><span class="q">Q：近轴近似的适用边界在哪？</span></p>

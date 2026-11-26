@@ -1,12 +1,18 @@
 <script setup lang="ts">
 /**
  * 模块一：几何光学与光线追迹（理想薄透镜近轴模型）
- * 计算 → 绘图 → 面板 三层分离：本组件只负责编排与交互。
+ *
+ * 信息层级（自上而下、权重递减）：
+ *   ① 核心成像结果：像距 / 放大倍率 / 像高 / 成像性质 —— 大数值卡片
+ *   ② 辅助光学参数：物方焦点 / 像方焦点 / 成像区间 —— 紧凑低权重
+ *   ③ 高级光学参数：名义 F 数 / 有效 F 数 / 物方 NA / 像方 NA —— 折叠，默认关闭
+ *   ④ 计算过程与公式推导 —— 折叠，默认关闭
  */
 import { computed, onMounted, reactive } from 'vue'
 import ExperimentWorkspace from '@/components/layout/ExperimentWorkspace.vue'
 import CanvasStage from '@/components/ui/CanvasStage.vue'
 import ChartPanel from '@/components/ui/ChartPanel.vue'
+import FoldSection from '@/components/ui/FoldSection.vue'
 import ParamPanel from '@/components/ui/ParamPanel.vue'
 import StatGrid from '@/components/ui/StatGrid.vue'
 import TheoryPanel from './TheoryPanel.vue'
@@ -36,6 +42,23 @@ import { useTheme } from '@/stores/theme'
 
 const MODULE_NAME = '几何光学'
 
+type Tone = 'ok' | 'accent' | 'warn' | 'muted'
+
+interface HeroItem {
+  label: string
+  labelEn: string
+  value: string
+  unit?: string
+  tone: Tone
+  note: string
+}
+
+interface AuxItem {
+  label: string
+  labelEn: string
+  value: string
+}
+
 const params = reactive<GeoParams>({ ...GEO_DEFAULTS })
 const view = reactive<GeoViewOptions>({ ...GEO_DEFAULT_VIEW })
 const canvasSize = reactive({ w: 0, h: 0 })
@@ -55,8 +78,8 @@ function onStageResize(size: { w: number; h: number }): void {
 
 /**
  * 光路图纵向拉伸倍率标注。
- * 典型工况下行宽比可达十几倍，严格等比会把光路压成一条细线，
- * 因此纵向做有限拉伸，并在界面上明确标注实际倍率（数值结果不受影响）。
+ * 典型工况行宽比可达十几倍，严格等比会把光路压成细线；
+ * 纵向只做有限拉伸并在界面标注实际倍率，数值结果不受影响。
  */
 const scaleLabel = computed(() => {
   if (canvasSize.w < 10 || canvasSize.h < 10) return '自适应缩放 Auto-fit'
@@ -65,12 +88,24 @@ const scaleLabel = computed(() => {
   return plan.stretch > 1.15 ? `纵向放大 ${plan.stretch.toFixed(1)}× · 示意` : '等比缩放 Auto-fit'
 })
 
+/** 图例只显示当前真正画出来的内容，避免「图例有、画面没有」 */
+const legendItems = computed(() =>
+  GEO_RAY_LEGEND.filter((item) => {
+    if (item.key === 'bundle') return view.showBundleRays
+    if (item.key === 'virtual') return result.value.image.status === 'virtual'
+    return true
+  }),
+)
+
 function updateParam(key: string, value: ParamValue): void {
   ;(params as unknown as Record<string, ParamValue>)[key] = value
 }
 
 function toggleView(key: keyof GeoViewOptions): void {
   view[key] = !view[key]
+  if (key === 'showBundleRays') {
+    pushLog('info', MODULE_NAME, `光锥显示已${view.showBundleRays ? '开启' : '关闭'}（高级辅助显示）`)
+  }
 }
 
 function applyPreset(preset: GeoPreset): void {
@@ -91,45 +126,47 @@ function onInvalid(message: string): void {
 const regimeText = computed(() => {
   const r = result.value
   if (!r.ok) return '参数非法'
-  if (r.image.status === 'infinite') return 'u = f · 出射平行光'
-  if (r.lensType === 'concave') return '凹透镜 · 恒为正立缩小虚像'
+  if (r.image.status === 'infinite') return 'u = |f| · 出射平行光'
+  if (r.lensType === 'concave') return '凹透镜 · 正立缩小虚像'
   const ratio = r.objectDistance / r.focalLengthAbs
   if (ratio > 2.0001) return 'u > 2f · 缩小倒立实像'
   if (ratio > 1.0001) return 'f < u < 2f · 放大倒立实像'
   return 'u < f · 放大正立虚像'
 })
 
-const stats = computed<StatItem[]>(() => {
+/** ① 核心成像结果（大数值、主视觉） */
+const heroStats = computed<HeroItem[]>(() => {
   const r = result.value
   if (!r.ok) return []
   const img = r.image
-  const isVirtual = img.status === 'virtual'
   const isReal = img.status === 'real'
+  const isVirtual = img.status === 'virtual'
+  const tone: Tone = isReal ? 'ok' : isVirtual ? 'accent' : 'warn'
 
-  const items: StatItem[] = [
+  return [
     {
       label: '像距',
       labelEn: 'v',
       value: img.distance === null ? '∞' : fmt(img.distance, 2),
       unit: img.distance === null ? '' : 'mm',
-      tone: isReal ? 'ok' : isVirtual ? 'accent' : 'warn',
+      tone,
       note:
         img.distance === null
-          ? '像在无穷远，无有限像距'
+          ? '出射光平行，像在无穷远'
           : img.distance > 0
-            ? '像在透镜右侧（实像侧）'
-            : '像在透镜左侧（与物同侧）',
+            ? '透镜右侧 · 实像侧'
+            : '透镜左侧 · 与物同侧',
     },
     {
-      label: '横向放大率',
+      label: '横向放大倍率',
       labelEn: 'm = −v/u',
       value: fmt(img.magnification, 3),
-      tone: isReal ? 'ok' : isVirtual ? 'accent' : 'warn',
+      tone,
       note:
         img.magnification === null
-          ? '—'
+          ? '无有限像点'
           : Math.abs(Math.abs(img.magnification) - 1) < 0.001
-            ? '等大成像 |m| = 1'
+            ? '等大 |m| = 1'
             : Math.abs(img.magnification) > 1
               ? `放大 ${fmt(Math.abs(img.magnification), 2)}×`
               : `缩小 ${fmt(Math.abs(img.magnification), 2)}×`,
@@ -139,63 +176,94 @@ const stats = computed<StatItem[]>(() => {
       labelEn: 'h′ = m·h',
       value: fmt(img.height, 2),
       unit: img.height === null ? '' : 'mm',
-      note: img.height === null ? '—' : img.isInverted ? '倒立（负值）' : '正立（正值）',
+      tone: img.height === null ? 'muted' : img.isInverted ? 'accent' : 'ok',
+      note: img.height === null ? '—' : img.isInverted ? '负值 · 倒立' : '正值 · 正立',
     },
     {
       label: '成像性质',
       labelEn: 'Image type',
-      value: img.status === 'real' ? '实像' : img.status === 'virtual' ? '虚像' : '无穷远',
-      tone: isReal ? 'ok' : isVirtual ? 'accent' : 'warn',
-      note: isReal ? '可被屏幕/传感器接收' : isVirtual ? '仅能用目镜观察' : '准直输出',
+      value: isReal ? '实像' : isVirtual ? '虚像' : '无穷远',
+      tone,
+      note: isReal ? '可由屏幕 / 传感器接收' : isVirtual ? '反向延长线相交，仅可目视' : '准直输出',
     },
-    {
-      label: '成像区间',
-      labelEn: 'u / f regime',
-      value: regimeText.value,
-      tone: 'muted',
-      note: `u/f = ${fmt(r.objectDistance / r.focalLengthAbs, 2)}`,
-    },
+  ]
+})
+
+/** ② 辅助光学参数（紧凑、低权重） */
+const auxStats = computed<AuxItem[]>(() => {
+  const r = result.value
+  if (!r.ok) return []
+  const objectFocal = r.focalPoints.objectSideZ
+  const imageFocal = r.focalPoints.imageSideZ
+  return [
     {
       label: '物方焦点 F',
-      labelEn: 'Object focal point',
-      value: fmt(r.focalPoints.objectSideZ, 1),
-      unit: 'mm',
-      note: '光心为原点，z = −f',
+      labelEn: 'z = −f',
+      value: `${fmt(objectFocal, 1)} mm · ${objectFocal < 0 ? '左侧' : '右侧'}`,
     },
     {
       label: '像方焦点 F′',
-      labelEn: 'Image focal point',
-      value: fmt(r.focalPoints.imageSideZ, 1),
-      unit: 'mm',
-      note: 'z = +f',
+      labelEn: 'z = +f',
+      value: `${fmt(imageFocal, 1)} mm · ${imageFocal < 0 ? '左侧' : '右侧'}`,
     },
     {
-      label: '相对孔径倒数',
-      labelEn: 'F/# = |f|/D',
+      label: '成像区间',
+      labelEn: 'u/|f| = ' + fmt(r.objectDistance / r.focalLengthAbs, 2),
+      value: regimeText.value,
+    },
+  ]
+})
+
+/** ③ 高级光学参数（折叠，默认关闭） */
+const advancedStats = computed<StatItem[]>(() => {
+  const r = result.value
+  if (!r.ok) return []
+  const m = r.image.magnification
+  const nEff = r.effectiveFNumber
+  return [
+    {
+      label: '名义 F 数',
+      labelEn: 'N = |f|/D',
       value: fmt(r.fNumber, 2),
       tone: r.fNumber < 1 ? 'warn' : 'muted',
-      note: r.fNumber < 1 ? '超出近轴近似适用范围' : '越小进光量越大',
+      note: r.fNumber < 1 ? '大孔径：近轴近似适用性下降' : '按无限共轭定义',
+    },
+    {
+      label: '有效 F 数',
+      labelEn: 'N_eff = |v|/D',
+      value: nEff === null ? '—' : fmt(nEff, 2),
+      tone: 'muted',
+      note:
+        nEff === null
+          ? '出射平行光，无会聚锥（趋于 ∞）'
+          : r.image.status === 'real'
+            ? `= N·(1+|m|) = ${fmt(r.fNumber * (1 + Math.abs(m ?? 0)), 2)}`
+            : '虚像：出射光发散，取像方锥等效值',
     },
     {
       label: '物方数值孔径',
-      labelEn: 'NA object',
+      labelEn: 'NA = n·sinθ',
       value: fmt(r.naObject, 3),
-      note: '近轴 NA ≈ sinθ，θ = atan(D/2u)',
+      tone: 'muted',
+      note: `半角 ${fmt(r.objectHalfAngleDeg, 2)}° · 默认空气 n≈1`,
     },
     {
       label: '像方数值孔径',
-      labelEn: 'NA image',
-      value: r.naImage === null ? '—' : fmt(r.naImage, 3),
-      note: r.naImage === null ? '无穷远成像无定义' : '像方会聚半角',
+      labelEn: 'NA′ = n·sinθ′',
+      value: fmt(r.naImage, 3),
+      tone: 'muted',
+      note:
+        r.image.status === 'infinite'
+          ? '平行出射，会聚半角为 0'
+          : `半角 ${fmt(r.imageHalfAngleDeg, 2)}°`,
     },
   ]
-  return items
 })
 
 useExperimentLog(MODULE_NAME, () => {
   const r = result.value
   if (!r.ok) return null
-  return `${summarizeThinLens(r)}（D=${r.apertureDiameter}mm, F/#=${fmt(r.fNumber, 2)}）`
+  return `${summarizeThinLens(r)}（D=${r.apertureDiameter}mm, N=${fmt(r.fNumber, 2)}）`
 })
 
 onMounted(() => {
@@ -208,7 +276,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <ExperimentWorkspace initial-tab="results" :initial-dock-height="256">
+  <ExperimentWorkspace initial-tab="results" :initial-dock-height="268">
     <!-- ============ 中央：光路可视化 ============ -->
     <template #stage>
       <CanvasStage :draw="drawScene" @resize="onStageResize">
@@ -217,28 +285,16 @@ onMounted(() => {
             <div class="stage__toolbar">
               <button
                 class="chip"
-                :class="{ 'chip--on': view.showPrincipalRays }"
-                @click="toggleView('showPrincipalRays')"
-              >
-                主光线
-              </button>
-              <button
-                class="chip"
                 :class="{ 'chip--on': view.showBundleRays }"
+                title="按通光口径采样的光锥与光束填充（可选高级辅助）"
                 @click="toggleView('showBundleRays')"
               >
-                光锥
-              </button>
-              <button
-                class="chip"
-                :class="{ 'chip--on': view.showVirtualExtensions }"
-                @click="toggleView('showVirtualExtensions')"
-              >
-                虚像延长线
+                光锥（高级）
               </button>
               <button
                 class="chip"
                 :class="{ 'chip--on': view.showAnnotations }"
+                title="焦点、物/像、尺寸与比例尺标注"
                 @click="toggleView('showAnnotations')"
               >
                 标注
@@ -246,6 +302,7 @@ onMounted(() => {
               <button
                 class="chip"
                 :class="{ 'chip--on': view.showImagePlane }"
+                title="像面位置参考线"
                 @click="toggleView('showImagePlane')"
               >
                 像面
@@ -263,7 +320,7 @@ onMounted(() => {
           <div class="stage__row" style="align-items: flex-end">
             <div class="stage__legend legend">
               <span
-                v-for="item in GEO_RAY_LEGEND"
+                v-for="item in legendItems"
                 :key="item.key"
                 class="legend__item"
                 :style="{ color: `var(--${item.colorVar})` }"
@@ -306,8 +363,8 @@ onMounted(() => {
             </button>
           </div>
           <div class="model-note">
-            本模块采用<strong>理想薄透镜近轴模型</strong>，不含像差、衍射与镀膜效应，
-            结果用于理解成像规律与公式验证，不构成商业光学设计依据。
+            理想薄透镜近轴模型：不含像差、衍射与镀膜；光路图纵向拉伸仅为可读性，
+            <strong>不影响任何计算数值</strong>。
           </div>
         </template>
       </ParamPanel>
@@ -315,38 +372,109 @@ onMounted(() => {
 
     <!-- ============ 底部：结果 / 曲线 / 日志 ============ -->
     <template #results>
-      <div v-if="!result.ok" class="callout callout--err">
-        <span class="callout__icon">!</span>
-        <div>{{ result.errors.join('；') }}</div>
-      </div>
-      <div v-for="w in result.warnings" :key="w" class="callout callout--warn">
-        <span class="callout__icon">△</span>
-        <div>{{ w }}</div>
-      </div>
-      <div v-for="n in result.notes" :key="n" class="callout callout--info">
-        <span class="callout__icon">i</span>
-        <div>{{ n }}</div>
-      </div>
+      <div class="pane-stack">
+        <!-- 参数非法与提示 -->
+        <div v-if="!result.ok" class="callout callout--err">
+          <span class="callout__icon">!</span>
+          <div>{{ result.errors.join('；') }}</div>
+        </div>
+        <template v-else>
+          <div v-for="w in result.warnings" :key="w" class="callout callout--warn">
+            <span class="callout__icon">△</span>
+            <div>{{ w }}</div>
+          </div>
+          <div v-for="n in result.notes" :key="n" class="callout callout--info">
+            <span class="callout__icon">i</span>
+            <div>{{ n }}</div>
+          </div>
+        </template>
 
-      <StatGrid :items="stats" />
+        <!-- ① 核心成像结果 -->
+        <section class="group">
+          <div class="group-head">
+            <span class="group-head__title">核心成像结果</span>
+            <span class="group-head__en">Core image results</span>
+          </div>
+          <div class="hero-grid">
+            <div
+              v-for="item in heroStats"
+              :key="item.label"
+              class="hero"
+              :class="`hero--${item.tone}`"
+            >
+              <div class="hero__label">
+                {{ item.label }}<span class="hero__label-en">{{ item.labelEn }}</span>
+              </div>
+              <div class="hero__value">
+                {{ item.value }}<span v-if="item.unit" class="hero__unit">{{ item.unit }}</span>
+              </div>
+              <div class="hero__note">{{ item.note }}</div>
+            </div>
+          </div>
+        </section>
 
-      <div class="section-title">计算过程 <span class="muted xs">· Worked example</span></div>
-      <code class="formula">
-        {{ result.lensType === 'convex' ? '凸透镜' : '凹透镜' }}：f = {{ fmt(result.focalLengthSigned, 1) }} mm，u
-        = {{ fmt(result.objectDistance, 1) }} mm
-      </code>
-      <code class="formula formula--calc">
-        v = f·u/(u − f) = ({{ fmt(result.focalLengthSigned, 1) }} × {{ fmt(result.objectDistance, 1) }}) / ({{
-          fmt(result.objectDistance, 1)
-        }}
-        − {{ fmt(result.focalLengthSigned, 1) }}) = {{ fmt(result.image.distance, 3) }} mm
-      </code>
-      <code class="formula formula--calc">
-        m = −v/u = −({{ fmt(result.image.distance, 3) }}) / {{ fmt(result.objectDistance, 1) }} =
-        {{ fmt(result.image.magnification, 4) }} ；h′ = m·h = {{ fmt(result.image.height, 3) }} mm
-      </code>
+        <!-- ② 辅助光学参数 -->
+        <section class="group">
+          <div class="group-head">
+            <span class="group-head__title">辅助光学参数</span>
+            <span class="group-head__en">Secondary parameters</span>
+          </div>
+          <div class="aux-grid">
+            <div v-for="item in auxStats" :key="item.label" class="aux-row">
+              <span class="aux-row__label">
+                {{ item.label }}<span class="aux-row__en">{{ item.labelEn }}</span>
+              </span>
+              <span class="aux-row__value">{{ item.value }}</span>
+            </div>
+          </div>
+          <p class="group-note">
+            坐标原点取透镜主平面，向右（光传播方向）为正，单位 mm；焦点位置 z = ∓f 会随焦距符号自动落在相应侧。
+          </p>
+        </section>
 
-      <TheoryPanel />
+        <!-- ③ 高级光学参数（默认关闭） -->
+        <FoldSection title="高级光学参数" title-en="Advanced parameters">
+          <StatGrid :items="advancedStats" />
+          <p class="group-note">
+            名义 F 数 N = |f|/D 按无限共轭定义；有限物距下真正决定像面照度（∝1/N_eff²）与衍射斑尺寸的是
+            <strong>有效 F 数 N_eff = |v|/D</strong>，成实像时可进一步写成 N·(1+|m|)（1:1 成像时 N_eff = 2N）。
+            两者只在无穷远成像时相等；虚像时出射光发散，N_eff 只作为像方锥的等效量。
+            数值孔径按 NA = n·sinθ 计算，本模型默认空气（n ≈ 1）；近轴近似要求孔径角与视场角都较小。
+          </p>
+        </FoldSection>
+
+        <!-- ④ 计算过程与公式推导（默认关闭） -->
+        <FoldSection title="计算过程与公式推导" title-en="Worked example">
+          <code class="formula">高斯成像公式：1/f = 1/u + 1/v ⇒ v = f·u/(u − f) ［f、u、v 单位 mm］</code>
+          <code class="formula">横向放大率：m = h′/h = −v/u ［无量纲；m &lt; 0 倒立，m &gt; 0 正立］</code>
+          <code class="formula">牛顿公式（互校用）：(u − f)(v − f) = f² ［mm²］</code>
+          <code class="formula formula--calc">
+            代入：{{ result.lensType === 'convex' ? '凸透镜' : '凹透镜' }} f = {{ fmt(result.focalLengthSigned, 1) }}
+            mm，u = {{ fmt(result.objectDistance, 1) }} mm
+          </code>
+          <code class="formula formula--calc">
+            v = ({{ fmt(result.focalLengthSigned, 1) }} × {{ fmt(result.objectDistance, 1) }}) / ({{
+              fmt(result.objectDistance, 1)
+            }}
+            − {{ fmt(result.focalLengthSigned, 1) }}) = {{ fmt(result.image.distance, 3) }} mm
+          </code>
+          <code class="formula formula--calc">
+            m = −({{ fmt(result.image.distance, 3) }}) / {{ fmt(result.objectDistance, 1) }} =
+            {{ fmt(result.image.magnification, 4) }} ；
+            h′ = m·h = {{ fmt(result.image.magnification, 4) }} × {{ fmt(result.objectHeight, 1) }} =
+            {{ fmt(result.image.height, 3) }} mm
+          </code>
+          <p class="group-note">
+            <strong>符号约定：</strong>光线自左向右；u &gt; 0（物在左侧）；凸透镜 f &gt; 0、凹透镜 f &lt; 0；
+            v &gt; 0 为实像（右侧）、v &lt; 0 为虚像（左侧）。
+            <br />
+            <strong>适用条件：</strong>近轴近似（sinθ ≈ tanθ ≈ θ）、薄透镜（忽略厚度）、单色光、不含像差与衍射。
+            当 F 数过小、视场过大或需要定量像质评价时，应改用实际光线追迹或阶段二的 PSF/MTF 分析。
+          </p>
+        </FoldSection>
+
+        <TheoryPanel />
+      </div>
     </template>
 
     <template #charts>
@@ -354,7 +482,7 @@ onMounted(() => {
         <div class="chart-box">
           <div class="chart-box__head">
             <span class="chart-box__title">像距 – 物距特性</span>
-            <span>v(u)，渐近线 u = f</span>
+            <span>v(u){{ result.lensType === 'convex' ? '，渐近线 u = f' : '，凹透镜无渐近线' }}</span>
           </div>
           <ChartPanel :option="charts.imageDistance" :height="180" />
         </div>
@@ -367,13 +495,47 @@ onMounted(() => {
         </div>
       </div>
       <p class="xs muted" style="padding: 0 2px">
-        曲线由薄透镜公式在 220 个物距采样点上逐点计算得到；超出可视范围的极端值已断开显示（非插值、非拟合）。
+        曲线由薄透镜公式在 220 个物距采样点上逐点计算得到；超出可视范围的极端值断开显示（非插值、非拟合）。
       </p>
     </template>
   </ExperimentWorkspace>
 </template>
 
 <style scoped>
+.pane-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.group-head__title {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-2);
+  letter-spacing: 0.02em;
+}
+
+.group-head__en {
+  font-size: 9.5px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.group-note {
+  margin-top: 6px;
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+  color: var(--text-3);
+}
+
 .preset-list {
   display: flex;
   flex-direction: column;

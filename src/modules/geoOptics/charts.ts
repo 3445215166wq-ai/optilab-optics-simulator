@@ -85,18 +85,23 @@ export function buildGeoCharts(params: GeoParams, palette: ScenePalette): GeoCha
     rayCount: 3,
   })
 
-  const markLineF = {
-    silent: true,
-    symbol: 'none' as const,
-    lineStyle: { color: palette.rayBlocked, type: 'dashed' as const, width: 1 },
-    label: {
-      color: palette.rayBlocked,
-      fontSize: 9.5,
-      formatter: 'u = f',
-      position: 'insideEndTop' as const,
-    },
-    data: [{ xAxis: fAbs }],
-  }
+  // 只有凸透镜在 u = f 处存在渐近线；凹透镜无此奇点，不应画该参考线
+  const showAsymptote = params.lensType === 'convex'
+
+  const markLineF = showAsymptote
+    ? {
+        silent: true,
+        symbol: 'none' as const,
+        lineStyle: { color: palette.rayBlocked, type: 'dashed' as const, width: 1 },
+        label: {
+          color: palette.rayBlocked,
+          fontSize: 9.5,
+          formatter: 'u = f',
+          position: 'insideEndTop' as const,
+        },
+        data: [{ xAxis: fAbs }],
+      }
+    : undefined
 
   const imageDistance: EChartsOption = {
     animation: false,
@@ -178,18 +183,26 @@ export function buildGeoCharts(params: GeoParams, palette: ScenePalette): GeoCha
         lineStyle: { width: 1.8, color: palette.rayCenter },
         itemStyle: { color: palette.rayCenter },
         data: points.map((p) => [p.u, p.m]),
-        markLine: {
-          silent: true,
-          symbol: 'none',
-          lineStyle: { color: palette.rayBlocked, type: 'dashed', width: 1 },
-          label: {
-            color: palette.rayBlocked,
-            fontSize: 9.5,
-            formatter: 'u = f',
-            position: 'insideEndTop',
-          },
-          data: [{ xAxis: fAbs }, { yAxis: 0, lineStyle: { color: palette.gridLineStrong, type: 'solid' } }],
-        },
+        markLine: showAsymptote
+          ? {
+              silent: true,
+              symbol: 'none',
+              lineStyle: { color: palette.rayBlocked, type: 'dashed', width: 1 },
+              label: {
+                color: palette.rayBlocked,
+                fontSize: 9.5,
+                formatter: 'u = f',
+                position: 'insideEndTop',
+              },
+              data: [{ xAxis: fAbs }],
+            }
+          : {
+              silent: true,
+              symbol: 'none',
+              lineStyle: { color: palette.gridLineStrong, type: 'solid', width: 1 },
+              label: { show: true, color: palette.textMuted, fontSize: 9.5, formatter: 'm = 0', position: 'insideEndTop' },
+              data: [{ yAxis: 0 }],
+            },
         markPoint:
           current.image.magnification !== null && Math.abs(current.image.magnification) <= 12
             ? {

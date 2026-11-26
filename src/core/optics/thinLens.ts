@@ -105,15 +105,24 @@ export interface ThinLensResult {
   image: ImageInfo
   /** 焦点位置：物方焦点 F 在 z = −f，像方焦点 F' 在 z = +f */
   focalPoints: { objectSideZ: number; imageSideZ: number }
-  /** 相对孔径倒数 F/# = |f| / D */
+  /** F 数（名义光圈数）N = |f| / D，按无限共轭定义，是相对孔径 D/f 的倒数，无量纲 */
   fNumber: number
-  /** 物方数值孔径（近轴，sin 用 tan 近似） */
+  /**
+   * 有效 F 数（working f-number）N_eff = |v| / D ≈ N·(1 + |m|)。
+   * 有限物距下真正决定像面照度与衍射斑尺寸的是它，而非名义 F 数。
+   * 成像于无穷远时出射为平行光、无会聚锥，取 null（极限趋于无穷）。
+   */
+  effectiveFNumber: number | null
+  /**
+   * 物方数值孔径 NA = n·sinθ（近轴下 n≈1，用 tan 代替 sin）。
+   * 注意：严格的 NA 定义含介质折射率，本模型默认空气。
+   */
   naObject: number
-  /** 像方数值孔径（近轴）；无穷远成像时为 null */
-  naImage: number | null
-  /** 物方/像方会聚半角（度） */
+  /** 像方数值孔径 NA′ = n·sinθ′；成像于无穷远时出射光平行，会聚半角为 0，故取 0 */
+  naImage: number
+  /** 物方/像方边缘光线的会聚半角（度） */
   objectHalfAngleDeg: number
-  imageHalfAngleDeg: number | null
+  imageHalfAngleDeg: number
   principalRays: TracedRay[]
   bundleRays: TracedRay[]
   /** 建议的绘制窗口（光轴方向，mm），渲染层据此自适应缩放 */
@@ -162,10 +171,11 @@ function invalidResult(errors: string[], input: ThinLensInput): ThinLensResult {
     },
     focalPoints: { objectSideZ: 0, imageSideZ: 0 },
     fNumber: Number.NaN,
+    effectiveFNumber: null,
     naObject: Number.NaN,
-    naImage: null,
+    naImage: Number.NaN,
     objectHalfAngleDeg: Number.NaN,
-    imageHalfAngleDeg: null,
+    imageHalfAngleDeg: Number.NaN,
     principalRays: [],
     bundleRays: [],
     bounds: { xMin: -100, xMax: 100 },
@@ -241,11 +251,13 @@ export function computeThinLens(input: ThinLensInput): ThinLensResult {
   if (status === 'virtual') {
     notes.push(
       input.lensType === 'concave'
-        ? '凹透镜（发散）对实物永远成 正立、缩小、虚像，像与物在透镜同侧。'
-        : '物距小于焦距 (u < f)：成正立、放大的虚像（放大镜原理），像与物在透镜同侧。',
+        ? '凹透镜（发散）对实物成正立、缩小的虚像，像与物在透镜同侧；虚像由出射光线的反向延长线相交得到，不能用屏幕接收。'
+        : '物距小于焦距 (u < f)：成正立、放大的虚像（放大镜原理），像与物在透镜同侧，虚像只能通过眼睛或目镜观察。',
     )
   } else if (status === 'real') {
-    notes.push('实像：由出射光线的真实会聚点形成，可被屏幕/相机传感器直接接收，且必然倒立。')
+    notes.push(
+      '实像由出射光线的真实会聚点形成，可被屏幕或传感器接收；单薄透镜对实物成实像时横向放大率为负，因此呈倒立。',
+    )
   }
 
   // ---------------- 2. 光路追迹 ----------------
@@ -332,15 +344,21 @@ export function computeThinLens(input: ThinLensInput): ThinLensResult {
   }
 
   // ---------------- 3. 派生光学参数 ----------------
+  // 名义 F 数按无限共轭定义：N = |f| / D
   const fNumber = Math.abs(f) / D
   const objectHalfAngleDeg = toDeg(Math.atan(R / u))
   const naObject = Math.sin(Math.atan(R / u))
-  const imageHalfAngleDeg = atInfinity ? null : toDeg(Math.atan(R / Math.abs(v)))
-  const naImage = atInfinity ? null : Math.sin(Math.atan(R / Math.abs(v)))
+  // 像方边缘光线会聚半角：sinθ′ = (D/2) / √((D/2)² + v²)
+  // 成像于无穷远时出射光平行，会聚半角为 0（不是「无定义」）
+  const imageHalfAngleDeg = atInfinity ? 0 : toDeg(Math.atan(R / Math.abs(v)))
+  const naImage = atInfinity ? 0 : Math.sin(Math.atan(R / Math.abs(v)))
+  // 有效 F 数：有限共轭下真正决定像面照度与衍射斑尺寸的量
+  //   N_eff = |v| / D，且由高斯公式可证明 N_eff = N·(1 + |m|)
+  const effectiveFNumber = atInfinity ? null : Math.abs(v) / D
 
   if (fNumber < 1) {
     warnings.push(
-      `相对孔径 F/# = ${fNumber.toFixed(2)} 已达到或超过近轴近似适用范围，实际系统必须考虑球差等大孔径像差。`,
+      `名义 F 数 N = f/D = ${fNumber.toFixed(2)}（相对孔径 D/f = ${(1 / fNumber).toFixed(2)}）已进入大孔径区间，近轴近似的适用性下降，实际系统需考虑球差等大孔径像差。`,
     )
   }
 
@@ -367,6 +385,7 @@ export function computeThinLens(input: ThinLensInput): ThinLensResult {
     },
     focalPoints: { objectSideZ: -f, imageSideZ: f },
     fNumber,
+    effectiveFNumber,
     naObject,
     naImage,
     objectHalfAngleDeg,

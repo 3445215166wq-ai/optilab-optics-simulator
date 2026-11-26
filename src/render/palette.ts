@@ -30,6 +30,8 @@ export interface ScenePalette {
   rayBundle: string
   rayVirtual: string
   rayBlocked: string
+  /** 光锥光束填充（5%~10% 透明度的淡色面，位于所有光线之下） */
+  rayBeamFill: string
   /* 物像标记 */
   objectArrow: string
   imageArrow: string
@@ -62,6 +64,7 @@ const DARK: ScenePalette = {
   rayBundle: '#7fa8cc',
   rayVirtual: '#7e8fa3',
   rayBlocked: '#e0665a',
+  rayBeamFill: 'rgba(127,168,204,0.075)',
   objectArrow: '#e8b64c',
   imageArrow: '#4e9fe0',
   imageVirtual: '#b386e8',
@@ -92,6 +95,7 @@ const LIGHT: ScenePalette = {
   rayBundle: '#5b87ad',
   rayVirtual: '#7d8fa1',
   rayBlocked: '#bb3b30',
+  rayBeamFill: 'rgba(70,120,165,0.075)',
   objectArrow: '#b5811a',
   imageArrow: '#1c6fae',
   imageVirtual: '#7a4bb5',

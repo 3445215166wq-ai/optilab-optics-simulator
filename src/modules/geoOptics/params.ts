@@ -35,7 +35,9 @@ export const GEO_DEFAULTS: GeoParams = {
 
 export const GEO_DEFAULT_VIEW: GeoViewOptions = {
   showPrincipalRays: true,
-  showBundleRays: true,
+  // 光锥属于可选高级辅助：默认关闭，避免默认画面信息过载
+  showBundleRays: false,
+  // 虚像反向延长线在适用时自动显示
   showVirtualExtensions: true,
   showAnnotations: true,
   showImagePlane: true,
@@ -76,7 +78,7 @@ export const GEO_SCHEMA: ParamSection[] = [
         min: 6,
         max: 120,
         step: 2,
-        hint: '决定光锥范围与相对孔径 F/# = |f|/D',
+        hint: '决定光锥范围与 F 数（光圈数）F/# = |f|/D，即相对孔径 D/f 的倒数',
       },
     ],
   },
@@ -93,7 +95,7 @@ export const GEO_SCHEMA: ParamSection[] = [
         min: 20,
         max: 900,
         step: 5,
-        hint: '从透镜主平面量起。u > f 成实像；u = f 出射平行光；u < f 成正立放大虚像',
+        hint: '从主平面量起。凸透镜：u > f 成实像、u = f 出射平行光、u < f 成正立放大虚像；凹透镜恒成虚像',
       },
       {
         kind: 'range',

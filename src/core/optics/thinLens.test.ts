@@ -259,6 +259,48 @@ describe('computeThinLens — 派生光学量', () => {
     expect(r.naImage as number).toBeGreaterThan(r.naObject)
   })
 
+  it('有效 F 数 N_eff = |v|/D；实像时恒等于 N·(1 + |m|)', () => {
+    // 由高斯公式可证明：实像（v > 0）时 |v|/D = (|f|/D)·(1+|m|)，这里逐点对照两组独立表达式
+    for (const u of [120, 150, 300, 480, 900]) {
+      const r = computeThinLens(make({ focalLength: 100, objectDistance: u, apertureDiameter: 40 }))
+      expect(r.image.status).toBe('real')
+      const D = 40
+      const v = r.image.distance as number
+      const m = r.image.magnification as number
+      expect(r.effectiveFNumber as number).toBeCloseTo(Math.abs(v) / D, 9)
+      expect(r.effectiveFNumber as number).toBeCloseTo(r.fNumber * (1 + Math.abs(m)), 9)
+      // 有限共轭下有效 F 数必然大于名义 F 数
+      expect(r.effectiveFNumber as number).toBeGreaterThan(r.fNumber)
+    }
+  })
+
+  it('虚像情形：N_eff 仍取 |v|/D，但 N·(1+|m|) 关系式不适用', () => {
+    const r = computeThinLens(make({ focalLength: 100, objectDistance: 60, apertureDiameter: 40 }))
+    expect(r.image.status).toBe('virtual')
+    const v = r.image.distance as number // −150
+    const m = r.image.magnification as number // +2.5
+    expect(r.effectiveFNumber as number).toBeCloseTo(Math.abs(v) / 40, 9) // 3.75
+    // 名义 F 数 2.5，N·(1+|m|) = 8.75，与 |v|/D 明显不同：
+    // 该恒等式仅在出射光真实会聚（实像）时成立，虚像时不能使用
+    expect(r.fNumber * (1 + Math.abs(m))).toBeCloseTo(8.75, 9)
+    expect(r.effectiveFNumber as number).toBeLessThan(r.fNumber * (1 + Math.abs(m)))
+  })
+
+  it('1:1 成像（u = 2f）时有效 F 数为名义 F 数的 2 倍', () => {
+    const r = computeThinLens(make({ focalLength: 100, objectDistance: 200, apertureDiameter: 25 }))
+    expect(r.fNumber).toBeCloseTo(4, 9)
+    expect(r.effectiveFNumber as number).toBeCloseTo(8, 9)
+  })
+
+  it('成像于无穷远时像方会聚半角为 0（不是「无定义」），有效 F 数趋于无穷', () => {
+    const r = computeThinLens(make({ focalLength: 120, objectDistance: 120, apertureDiameter: 40 }))
+    expect(r.image.status).toBe('infinite')
+    expect(r.naImage).toBe(0)
+    expect(r.imageHalfAngleDeg).toBe(0)
+    expect(r.effectiveFNumber).toBeNull()
+    expect(r.naObject).toBeGreaterThan(0)
+  })
+
   it('关键点坐标与输入一致', () => {
     const r = computeThinLens(make({ focalLength: 100, objectDistance: 300, objectHeight: 15 }))
     const kp = keyPoints(r)

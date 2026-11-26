@@ -53,8 +53,11 @@ export const GEO_STRETCH_OPTIONS = { allowStretchY: true, maxStretchY: 6 }
 /**
  * 计算光路场景需要覆盖的世界范围。
  * 渲染层与界面标注（纵向放大倍率）共用此函数，保证两边对同一画面得出一致结论。
+ *
+ * 注意：这里**始终**把光锥采样光线计入范围，即使当前关闭了光锥显示。
+ * 目的是让「开关光锥」时视口保持稳定，不会因为多画几条辅助线而整幅图跳动缩放。
  */
-export function computeGeoSceneBounds(result: ThinLensResult, options: GeoSceneOptions): Bounds {
+export function computeGeoSceneBounds(result: ThinLensResult, _options: GeoSceneOptions): Bounds {
   const xs = result.bounds
   const points: Array<{ x: number; y: number }> = [
     { x: xs.xMin, y: 0 },
@@ -66,13 +69,9 @@ export function computeGeoSceneBounds(result: ThinLensResult, options: GeoSceneO
   if (result.image.z !== null && result.image.height !== null) {
     points.push({ x: result.image.z, y: result.image.height })
   }
-  const rayList = [
-    ...(options.showPrincipalRays ? result.principalRays : []),
-    ...(options.showBundleRays ? result.bundleRays : []),
-  ]
+  const rayList = [...result.principalRays, ...result.bundleRays]
   for (const ray of rayList) {
     for (const seg of ray.segments) {
-      if (seg.dashed && !options.showVirtualExtensions) continue
       const clipped = clipSegmentX({ from: seg.from, to: seg.to }, xs.xMin, xs.xMax)
       if (clipped) points.push(clipped.from, clipped.to)
     }
@@ -108,27 +107,36 @@ export function drawGeoOpticsScene(
   }
 
   const { w, h } = size
-
-  // ---------------- 1. 决定要绘制的光线，并按内容计算自适应视口 ----------------
-  type RayWithKind = { ray: ThinLensResult['principalRays'][number]; principal: boolean }
-  const rays: RayWithKind[] = []
-  if (options.showPrincipalRays) {
-    for (const ray of result.principalRays) rays.push({ ray, principal: true })
-  }
-  if (options.showBundleRays) {
-    for (const ray of result.bundleRays) rays.push({ ray, principal: false })
-  }
-
   const bounds = computeGeoSceneBounds(result, options)
   const view = createViewport(w, h, bounds, GEO_STRETCH_OPTIONS)
 
-  // ---------------- 2. 背景网格与坐标轴 ----------------
+  // ---------------- 1. 背景网格与坐标轴 ----------------
   drawGridAndAxes(ctx, view, palette, { axisLabel: 'z (mm)', targetTicksX: 8 })
 
-  // ---------------- 3. 透镜 ----------------
+  // ---------------- 2. 光锥填充（最底层：低于光线、透镜与文字） ----------------
+  if (options.showBundleRays) {
+    drawBeamEnvelope(ctx, view, result, palette)
+  }
+
+  // ---------------- 3. 光锥采样光线（细线辅助，弱于三条典型光线） ----------------
+  if (options.showBundleRays) {
+    for (const ray of result.bundleRays) {
+      for (const seg of ray.segments) {
+        if (seg.dashed) {
+          if (options.showVirtualExtensions) {
+            strokeSegment(ctx, view, seg.from, seg.to, palette.rayVirtual, 1, [5, 4], 0.5)
+          }
+          continue
+        }
+        strokeSegment(ctx, view, seg.from, seg.to, palette.rayBundle, 1, null, 0.55)
+      }
+    }
+  }
+
+  // ---------------- 4. 透镜 ----------------
   drawLens(ctx, view, result, palette)
 
-  // ---------------- 4. 焦点 / 像面 参考标记 ----------------
+  // ---------------- 5. 焦点 / 像面 参考标记 ----------------
   if (options.showAnnotations) {
     drawFocalMarkers(ctx, view, result, palette)
   }
@@ -136,7 +144,7 @@ export function drawGeoOpticsScene(
     const px = view.px(result.image.z)
     ctx.save()
     ctx.strokeStyle = palette.accent
-    ctx.globalAlpha = 0.55
+    ctx.globalAlpha = 0.5
     ctx.setLineDash([3, 3])
     ctx.lineWidth = 1
     ctx.beginPath()
@@ -152,49 +160,48 @@ export function drawGeoOpticsScene(
     })
   }
 
-  // ---------------- 5. 光线 ----------------
-  for (const item of rays) {
-    const { ray, principal } = item
-    const color = palette[ROLE_COLOR_KEY[ray.role]]
-    // 光锥较细较淡，主光线粗且醒目
-    const width = principal ? 1.7 : 1
-    let alpha = principal ? 1 : 0.5
-    if (ray.blocked && principal) alpha = 0.34
+  // ---------------- 6. 三条典型光线（实际光线实线，虚像反向延长线虚线） ----------------
+  if (options.showPrincipalRays) {
+    for (const ray of result.principalRays) {
+      const color = palette[ROLE_COLOR_KEY[ray.role]]
+      const alpha = ray.blocked ? 0.32 : 1
 
-    for (const seg of ray.segments) {
-      if (seg.dashed) {
-        if (!options.showVirtualExtensions) continue
-        strokeSegment(ctx, view, seg.from, seg.to, palette.rayVirtual, 1, [5, 4], 0.8)
-        continue
+      for (const seg of ray.segments) {
+        if (seg.dashed) {
+          // 虚像时自动绘制反向延长线（虚线），无需手动开关
+          if (!options.showVirtualExtensions) continue
+          strokeSegment(ctx, view, seg.from, seg.to, color, 1, [5, 4], 0.55)
+          continue
+        }
+        strokeSegment(ctx, view, seg.from, seg.to, color, 1.8, null, alpha)
       }
-      strokeSegment(ctx, view, seg.from, seg.to, color, width, null, alpha)
-    }
 
-    // 主光线加传播方向箭头，便于说明「光往哪走」
-    if (principal && alpha > 0.5) {
-      drawDirectionArrow(ctx, view, ray.segments[0], color, 0.62)
-      const exit = ray.segments[1]
-      if (exit) drawDirectionArrow(ctx, view, exit, color, 0.28)
-    }
+      // 传播方向箭头
+      if (!ray.blocked) {
+        drawDirectionArrow(ctx, view, ray.segments[0], color, 0.62)
+        const exit = ray.segments[1]
+        if (exit) drawDirectionArrow(ctx, view, exit, color, 0.28)
+      }
 
-    // 被遮挡的主光线在透镜平面处打叉
-    if (ray.blocked && principal) {
-      const px = view.px(0)
-      const py = view.py(ray.apertureHeight)
-      ctx.save()
-      ctx.strokeStyle = palette.rayBlocked
-      ctx.lineWidth = 1.6
-      ctx.beginPath()
-      ctx.moveTo(px - 4, py - 4)
-      ctx.lineTo(px + 4, py + 4)
-      ctx.moveTo(px + 4, py - 4)
-      ctx.lineTo(px - 4, py + 4)
-      ctx.stroke()
-      ctx.restore()
+      // 被通光口径遮挡的主光线：透镜平面处打叉
+      if (ray.blocked) {
+        const px = view.px(0)
+        const py = view.py(ray.apertureHeight)
+        ctx.save()
+        ctx.strokeStyle = palette.rayBlocked
+        ctx.lineWidth = 1.6
+        ctx.beginPath()
+        ctx.moveTo(px - 4, py - 4)
+        ctx.lineTo(px + 4, py + 4)
+        ctx.moveTo(px + 4, py - 4)
+        ctx.lineTo(px - 4, py + 4)
+        ctx.stroke()
+        ctx.restore()
+      }
     }
   }
 
-  // ---------------- 6. 物 / 像 ----------------
+  // ---------------- 7. 物 / 像 ----------------
   const objPx = view.px(-result.objectDistance)
   drawVerticalArrow(
     ctx,
@@ -240,7 +247,7 @@ export function drawGeoOpticsScene(
     })
   }
 
-  // ---------------- 7. 尺寸标注（物距 / 像距） ----------------
+  // ---------------- 8. 尺寸标注（物距 / 像距） ----------------
   if (options.showAnnotations) {
     const axisY = view.py(0)
     const baseY = axisY + 46 < view.plot.bottom ? axisY : view.plot.bottom - 46
@@ -251,8 +258,70 @@ export function drawGeoOpticsScene(
     }
   }
 
-  // ---------------- 8. 比例尺 ----------------
+  // ---------------- 9. 比例尺 ----------------
   drawScaleBar(ctx, view, palette)
+}
+
+/**
+ * 光锥光束填充（beam envelope fill）。
+ * 用 7% 透明度的淡色面提示「光锥覆盖区域」，属于可选高级辅助显示：
+ *   - 不参与任何物理计算；
+ *   - 绘制层级位于典型光线、透镜与文字标注之下；
+ *   - 对每个 z 取所有采样光线的 min/max 高度构造包络，因此不会自相交。
+ */
+function drawBeamEnvelope(
+  ctx: CanvasRenderingContext2D,
+  view: ReturnType<typeof createViewport>,
+  result: ThinLensResult,
+  palette: ScenePalette,
+): void {
+  const exits: Array<{ from: { x: number; y: number }; to: { x: number; y: number } }> = []
+  for (const ray of result.bundleRays) {
+    const seg = ray.segments[1]
+    if (seg && !seg.dashed) exits.push(seg)
+  }
+  if (exits.length < 2) return
+
+  const xMax = result.bounds.xMax
+  const samples = 48
+  const upper: Array<{ x: number; y: number }> = []
+  const lower: Array<{ x: number; y: number }> = []
+
+  for (let i = 0; i <= samples; i += 1) {
+    const x = (xMax * i) / samples
+    let minY = Number.POSITIVE_INFINITY
+    let maxY = Number.NEGATIVE_INFINITY
+    for (const seg of exits) {
+      const dx = seg.to.x - seg.from.x
+      if (Math.abs(dx) < 1e-12) continue
+      const y = seg.from.y + ((seg.to.y - seg.from.y) * (x - seg.from.x)) / dx
+      if (!Number.isFinite(y)) continue
+      if (y < minY) minY = y
+      if (y > maxY) maxY = y
+    }
+    if (!Number.isFinite(minY) || !Number.isFinite(maxY)) continue
+    upper.push({ x, y: maxY })
+    lower.push({ x, y: minY })
+  }
+  if (upper.length < 2) return
+
+  const R = result.apertureRadius
+  ctx.save()
+  ctx.beginPath()
+  // 入射光锥：物点 → 透镜上缘 → 透镜下缘
+  ctx.moveTo(view.px(0), view.py(R))
+  ctx.lineTo(view.px(-result.objectDistance), view.py(result.objectHeight))
+  ctx.lineTo(view.px(0), view.py(-R))
+  // 出射光锥：沿 z 的下包络 → 上包络返回
+  for (const p of lower) ctx.lineTo(view.px(p.x), view.py(p.y))
+  for (let i = upper.length - 1; i >= 0; i -= 1) {
+    const p = upper[i]
+    ctx.lineTo(view.px(p.x), view.py(p.y))
+  }
+  ctx.closePath()
+  ctx.fillStyle = palette.rayBeamFill
+  ctx.fill()
+  ctx.restore()
 }
 
 /** 透镜符号：凸透镜用两道向外凸的曲线，凹透镜用向内凹的曲线 */
