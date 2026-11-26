@@ -1,0 +1,96 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>OptiLab 实验报告（4 条记录）</title>
+<style>
+  body { font-family: "Segoe UI", system-ui, "Microsoft YaHei", sans-serif; color: #16212c; margin: 32px; line-height: 1.6; }
+  h1 { font-size: 22px; border-bottom: 2px solid #1f78bd; padding-bottom: 8px; }
+  h2 { font-size: 17px; margin-top: 28px; color: #1f78bd; }
+  h3 { font-size: 14px; margin-bottom: 4px; }
+  .meta { color: #6b8199; font-size: 12px; margin: 0 0 8px; }
+  .en { color: #7a8fa5; font-size: 11px; font-weight: 400; }
+  .unit { color: #7a8fa5; font-size: 12px; }
+  .note { color: #7a8fa5; font-size: 12px; }
+  .muted { color: #7a8fa5; }
+  .pass { color: #12855c; font-weight: 700; }
+  .fail { color: #c0392f; font-weight: 700; }
+  table { border-collapse: collapse; width: 100%; margin: 6px 0 10px; font-size: 13px; }
+  th, td { border: 1px solid #d7e0e9; padding: 4px 8px; text-align: left; vertical-align: top; }
+  th { background: #f6f9fc; width: 30%; font-weight: 600; }
+  .stats th { width: auto; }
+  .val { font-family: ui-monospace, Consolas, monospace; }
+  .disclaimer { margin-top: 32px; padding: 10px 14px; border-left: 4px solid #d8a13a; background: #fdf6e6; font-size: 12px; }
+  @media print { body { margin: 12mm; } .record { page-break-inside: avoid; } }
+</style></head>
+<body>
+  <h1>OptiLab 实验报告</h1>
+  <p class="meta">导出时间：2026/11/27 03:40:53 · 记录条数：4</p>
+
+  <section class="record">
+    <h2>EXP-0001 · 几何光学</h2>
+    <p class="meta">测试时间：2026/11/27 03:40:46</p>
+    <h3>1. 实验目的</h3>
+    <p>在 几何光学 模块中按下列参数运行仿真，记录关键结果并核对其物理合理性与工程指标。</p>
+    <h3>2. 理论依据与参数配置</h3>
+    <table><tbody><tr><th>透镜类型</th><td>convex</td></tr><tr><th>焦距 |f| (mm)</th><td>100</td></tr><tr><th>物距 u (mm)</th><td>60</td></tr><tr><th>物高 h (mm)</th><td>15</td></tr><tr><th>通光口径 D (mm)</th><td>40</td></tr><tr><th>光锥采样数</th><td>11</td></tr></tbody></table>
+    <h3>3. 实验结果</h3>
+    <table class="stats"><thead><tr><th>指标</th><th>数值</th><th>说明</th></tr></thead><tbody><tr><th>像距 <span class="en">v</span></th><td class="val">-150.00 <span class="unit">mm</span></td><td class="note">透镜左侧 · 与物同侧</td></tr><tr><th>横向放大倍率 <span class="en">m = −v/u</span></th><td class="val">2.500</td><td class="note">放大 2.50×</td></tr><tr><th>像高 <span class="en">h′ = m·h</span></th><td class="val">37.50 <span class="unit">mm</span></td><td class="note">正值 · 正立</td></tr><tr><th>成像性质 <span class="en">Image type</span></th><td class="val">虚像</td><td class="note">反向延长线相交，仅可目视</td></tr></tbody></table>
+    <h3>4. 误差与异常记录</h3>
+    <ul><li>有 1 条主光线超出通光口径 D = 40 mm（理想作图仍绘制，真实系统中会被镜框遮挡）。</li></ul>
+    <h3>5. 合格判定</h3>
+    <p class="muted">本实验未设置合格阈值。</p>
+    <h3>6. 模型局限</h3>
+    <ul><li>理想薄透镜近轴模型：不含像差、衍射与镀膜；光路纵向拉伸仅影响显示，不改变数值结果。</li></ul>
+  </section>
+
+  <section class="record">
+    <h2>EXP-0002 · 衍射与分辨率</h2>
+    <p class="meta">测试时间：2026/11/27 03:40:47</p>
+    <h3>1. 实验目的</h3>
+    <p>在 衍射与分辨率 模块中按下列参数运行仿真，记录关键结果并核对其物理合理性与工程指标。</p>
+    <h3>2. 理论依据与参数配置</h3>
+    <table><tbody><tr><th>波长 λ (nm)</th><td>550</td></tr><tr><th>像方 F 数 N</th><td>22</td></tr><tr><th>通光口径 (mm)</th><td>25</td></tr><tr><th>放大率 |m|</th><td>1</td></tr></tbody></table>
+    <h3>3. 实验结果</h3>
+    <table class="stats"><thead><tr><th>指标</th><th>数值</th><th>说明</th></tr></thead><tbody><tr><th>像方艾里半径 <span class="en">r₁ = 1.22λN</span></th><td class="val">14.76 <span class="unit">μm</span></td><td class="note">瑞利判据 Δ = 14.76 μm（像方）</td></tr><tr><th>物方艾里半径 <span class="en">r₁ / |m|</span></th><td class="val">14.76 <span class="unit">μm</span></td><td class="note">|m| = 1.00× 折算到物平面</td></tr><tr><th>像方截止频率 <span class="en">f_c = 1/(λN)</span></th><td class="val">82.6 <span class="unit">lp/mm</span></td><td class="note">物方 82.6 lp/mm（×|m|）</td></tr><tr><th>艾里斑直径 <span class="en">2r₁</span></th><td class="val">29.52 <span class="unit">μm</span></td><td class="note">中心亮斑到第一暗环的两倍</td></tr></tbody></table>
+    <h3>4. 误差与异常记录</h3>
+    <p class="muted">无异常或警告。</p>
+    <h3>5. 合格判定</h3>
+    <p class="muted">本实验未设置合格阈值。</p>
+    <h3>6. 模型局限</h3>
+    <ul><li>理想圆形孔径解析模型：无像差、非相干成像，不含探测器像元 MTF 与采样影响。</li></ul>
+  </section>
+
+  <section class="record">
+    <h2>EXP-0003 · 自动对焦</h2>
+    <p class="meta">测试时间：2026/11/27 03:40:49</p>
+    <h3>1. 实验目的</h3>
+    <p>在 自动对焦 模块中按下列参数运行仿真，记录关键结果并核对其物理合理性与工程指标。</p>
+    <h3>2. 理论依据与参数配置</h3>
+    <table><tbody><tr><th>靶标</th><td>siemens</td></tr><tr><th>评价函数</th><td>tenengrad</td></tr><tr><th>搜索策略</th><td>coarseFine</td></tr><tr><th>初始 Z (mm)</th><td>10</td></tr><tr><th>扫描范围 (mm)</th><td>6</td></tr><tr><th>扫描步长 (mm)</th><td>0.1</td></tr><tr><th>仿真真值焦点 (mm)</th><td>10.3</td></tr><tr><th>离焦模糊系数 (σ/mm)</th><td>1.2</td></tr><tr><th>噪声 σ</th><td>0.01</td></tr><tr><th>曝光增益</th><td>1</td></tr><tr><th>定位误差 (±mm)</th><td>0.02</td></tr><tr><th>重复次数</th><td>5</td></tr><tr><th>PASS 阈值 (mm)</th><td>0.15</td></tr><tr><th>随机种子</th><td>20240501</td></tr></tbody></table>
+    <h3>3. 实验结果</h3>
+    <table class="stats"><thead><tr><th>指标</th><th>数值</th><th>说明</th></tr></thead><tbody><tr><th>当前 Z 位置 <span class="en">Current Z</span></th><td class="val">10.198 <span class="unit">mm</span></td><td class="note">命令位置 10.184 mm（含定位误差）</td></tr><tr><th>当前清晰度评分 <span class="en">Tenengrad 梯度</span></th><td class="val">1.81495</td><td class="note">评分绝对值只对本模块有意义，比较看曲线形状</td></tr><tr><th>搜索最佳焦点 <span class="en">Best focus Z</span></th><td class="val">10.184 <span class="unit">mm</span></td><td class="note">真值 10.300 mm</td></tr><tr><th>对焦误差 <span class="en">|ΔZ| / judge</span></th><td class="val">116.06 <span class="unit">μm</span></td><td class="note">PASS（阈值 150 μm）</td></tr></tbody></table>
+    <h3>4. 误差与异常记录</h3>
+    <p class="muted">无异常或警告。</p>
+    <h3>5. 合格判定</h3>
+    <p class="pass">PASS · 对焦误差 |ΔZ| = 116.06 μm</p>
+    <h3>6. 模型局限</h3>
+    <ul><li>虚拟 Z 轴平台为仿真设备；离焦采用高斯模糊近似（图像退化近似模型），非严格物理光学。</li><li>误差与统计数据均由本模块程序实算；噪声与定位误差由带种子 PRNG 生成，同种子可复现。</li></ul>
+  </section>
+
+  <section class="record">
+    <h2>EXP-0004 · 成像质量</h2>
+    <p class="meta">测试时间：2026/11/27 03:40:51</p>
+    <h3>1. 实验目的</h3>
+    <p>在 成像质量 模块中按下列参数运行仿真，记录关键结果并核对其物理合理性与工程指标。</p>
+    <h3>2. 理论依据与参数配置</h3>
+    <table><tbody><tr><th>离焦模糊 σ (px)</th><td>2</td></tr><tr><th>运动模糊长度 (px)</th><td>0</td></tr><tr><th>运动方向 (°)</th><td>0</td></tr><tr><th>光照不均</th><td>0</td></tr><tr><th>对比度系数</th><td>1</td></tr><tr><th>曝光增益</th><td>1</td></tr><tr><th>亮度偏置</th><td>0</td></tr><tr><th>噪声 σ</th><td>0.01</td></tr><tr><th>随机种子</th><td>20240501</td></tr><tr><th>图像来源</th><td>pcb</td></tr></tbody></table>
+    <h3>3. 实验结果</h3>
+    <table class="stats"><thead><tr><th>指标</th><th>数值</th><th>说明</th></tr></thead><tbody><tr><th>SSIM 结构相似度 <span class="en">SSIM</span></th><td class="val">0.6978</td><td class="note">1 = 与原始完全相同；&gt; 0.9 视觉上通常仍很接近</td></tr><tr><th>PSNR 峰值信噪比 <span class="en">PSNR</span></th><td class="val">19.46 <span class="unit">dB</span></td><td class="note">逐像素误差；对整体亮度偏移敏感、对模糊不敏感</td></tr><tr><th>平均亮度 <span class="en">Mean</span></th><td class="val">0.360</td><td class="note">曝光落在可用区间</td></tr><tr><th>RMS 对比度 <span class="en">Contrast</span></th><td class="val">0.217</td><td class="note">像素标准差；太小意味着细节平淡难检</td></tr></tbody></table>
+    <h3>4. 误差与异常记录</h3>
+    <p class="muted">无异常或警告。</p>
+    <h3>5. 合格判定</h3>
+    <p class="muted">本实验未设置合格阈值。</p>
+    <h3>6. 模型局限</h3>
+    <ul><li>离焦为高斯模糊近似（图像退化近似模型），非严格物理光学；运动模糊为线段 PSF 卷积。</li><li>缺陷检测模型未接入：本模块不产生任何检测准确率 / 漏检率 / 识别结果。</li></ul>
+  </section>
+  <p class="disclaimer">声明：本项目为教学与求职作品，平台中的设备、图像与测试数据均由程序仿真生成，
+  不代表任何真实设备的性能；报告中的结论仅用于验证算法与理解物理模型。</p>
+</body></html>

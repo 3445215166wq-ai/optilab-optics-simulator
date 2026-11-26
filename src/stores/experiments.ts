@@ -128,6 +128,60 @@ export function useExperiments() {
 }
 
 /* ------------------------------------------------------------------ */
+/* 参数键 → 中文名（导出时用；避免报告里出现 lensType 这类内部键名）      */
+/* ------------------------------------------------------------------ */
+
+const PARAM_LABELS: Record<string, string> = {
+  // 通用
+  wavelength: '波长 λ (nm)',
+  fNumber: '像方 F 数 N',
+  seed: '随机种子',
+  target: '靶标',
+  metric: '评价函数',
+  strategy: '搜索策略',
+  source: '图像来源',
+  // 几何光学
+  lensType: '透镜类型',
+  focalLength: '焦距 |f| (mm)',
+  objectDistance: '物距 u (mm)',
+  objectHeight: '物高 h (mm)',
+  apertureDiameter: '通光口径 D (mm)',
+  rayCount: '光锥采样数',
+  // 折射
+  incidenceAngle: '入射角 θ₁ (°)',
+  n1: '入射侧折射率 n₁',
+  n2: '折射侧折射率 n₂',
+  // 衍射
+  aperture: '通光口径 (mm)',
+  magnification: '放大率 |m|',
+  // PSF / MTF
+  defocus: '离焦 W₂₀ (λ)',
+  // 自动对焦
+  startZ: '初始 Z (mm)',
+  rangeMm: '扫描范围 (mm)',
+  stepMm: '扫描步长 (mm)',
+  trueFocusZ: '仿真真值焦点 (mm)',
+  blurPerMm: '离焦模糊系数 (σ/mm)',
+  positionErrorMm: '定位误差 (±mm)',
+  repeatRuns: '重复次数',
+  thresholdMm: 'PASS 阈值 (mm)',
+  // 成像质量
+  defocusSigma: '离焦模糊 σ (px)',
+  motionLength: '运动模糊长度 (px)',
+  motionAngleDeg: '运动方向 (°)',
+  illuminationFalloff: '光照不均',
+  contrast: '对比度系数',
+  exposureGain: '曝光增益',
+  exposureOffset: '亮度偏置',
+  noiseSigma: '噪声 σ',
+}
+
+/** 参数键的中文显示名（未登记的键原样返回） */
+export function paramLabel(key: string): string {
+  return PARAM_LABELS[key] ?? key
+}
+
+/* ------------------------------------------------------------------ */
 /* 导出：CSV / JSON / HTML                                             */
 /* ------------------------------------------------------------------ */
 
@@ -153,7 +207,7 @@ export function recordsToCsv(records: ExperimentRecord[]): string {
     '模块',
     '测试时间',
     '合格判定',
-    ...Array.from(paramKeys).map((k) => `参数:${k}`),
+    ...Array.from(paramKeys).map((k) => `参数:${paramLabel(k)}`),
     ...Array.from(statKeys).map((k) => `结果:${k}`),
     '异常记录',
     '模型局限',
@@ -214,7 +268,7 @@ export function recordsToHtml(records: ExperimentRecord[]): string {
   const sections = records
     .map((r) => {
       const paramRows = Object.entries(r.params)
-        .map(([k, v]) => `<tr><th>${escapeHtml(k)}</th><td>${escapeHtml(String(v))}</td></tr>`)
+        .map(([k, v]) => `<tr><th>${escapeHtml(paramLabel(k))}</th><td>${escapeHtml(String(v))}</td></tr>`)
         .join('')
       const statRows = r.stats
         .map(
@@ -321,7 +375,7 @@ export function recordsToPngCanvas(records: ExperimentRecord[], width = 1100): H
     y += 26
 
     const rows: Array<[string, string]> = [
-      ...Object.entries(r.params).map(([k, v]) => [`参数 ${k}`, String(v)] as [string, string]),
+      ...Object.entries(r.params).map(([k, v]) => [paramLabel(k), String(v)] as [string, string]),
       ...r.stats.slice(0, 10).map((s) => [s.label, s.unit ? `${s.value} ${s.unit}` : s.value] as [string, string]),
     ]
     for (const [label, value] of rows) {

@@ -201,9 +201,7 @@ npm test
 
 测试用例与验证报告见 [`docs/TESTS.md`](docs/TESTS.md)。
 
-## 9. GitHub Pages 部署
-
-`vite.config.ts` 已设置 `base: './'`，因此产物使用相对路径，可直接部署到任意子路径（例如 `https://<user>.github.io/OptiLab/`）。
+## 9. GitHub Pages 部署`vite.config.ts` 已设置 `base: './'`，因此产物使用相对路径，可直接部署到任意子路径（例如 `https://<user>.github.io/OptiLab/`）。
 
 ```bash
 npm run build          # 生成 dist/
@@ -260,6 +258,19 @@ jobs:
 ```
 
 > 无需任何服务端配置；所有计算在浏览器完成，因此没有跨域、密钥或 CORS 问题。
+
+### 9.1 怎么展示给别人看
+
+详见 [`docs/DEMO.md`](docs/DEMO.md)：三种展示形态（在线可交互 / 静态材料 / 口述脚本）、3 分钟演示路径、常被追问的 6 个问题与答法、上线前 checklist。
+
+现成的静态材料在 [`docs/samples/`](docs/samples/)：
+
+| 文件 | 内容 |
+| --- | --- |
+| `optilab-sample-report.pdf` | 4 条真实实验记录的完整测试报告（含 PASS 判定与模型局限） |
+| `optilab-sample-report.html` | 同一份报告的可打印 HTML（浏览器 Ctrl+P 可转 PDF） |
+| `optilab-records-summary.png` | 记录汇总图（canvas 现场生成） |
+| `report-overview.png` / `report-print-preview.png` | 报告模块界面与打印效果截图 |
 
 ## 10. 项目局限
 
