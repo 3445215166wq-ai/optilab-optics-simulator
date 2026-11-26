@@ -18,6 +18,7 @@ import {
   recordsToJson,
   recordsToPngCanvas,
   removeRecord,
+  removeRecords,
   useExperiments,
   type ExperimentRecord,
 } from '@/stores/experiments'
@@ -31,6 +32,40 @@ const { setActiveModule } = useNavigation()
 const selectedId = ref<string | null>(null)
 const message = ref('')
 const usageKb = ref(storageUsageKb())
+/** 批量选择（存 id 集合） */
+const checkedIds = ref<string[]>([])
+/** 按模块筛选 */
+const moduleFilter = ref<string>('全部')
+
+const moduleNames = computed(() => Array.from(new Set(records.value.map((r) => r.moduleName))))
+
+const visibleRecords = computed(() =>
+  moduleFilter.value === '全部'
+    ? [...records.value].reverse()
+    : [...records.value].reverse().filter((r) => r.moduleName === moduleFilter.value),
+)
+
+const allChecked = computed(
+  () => visibleRecords.value.length > 0 && visibleRecords.value.every((r) => checkedIds.value.includes(r.id)),
+)
+
+function toggleCheck(id: string): void {
+  checkedIds.value = checkedIds.value.includes(id)
+    ? checkedIds.value.filter((x) => x !== id)
+    : [...checkedIds.value, id]
+}
+
+function toggleAll(): void {
+  checkedIds.value = allChecked.value ? [] : visibleRecords.value.map((r) => r.id)
+}
+
+function onBatchRemove(): void {
+  const n = removeRecords(checkedIds.value)
+  checkedIds.value = []
+  refreshUsage()
+  pushLog('info', MODULE_NAME, `已批量删除 ${n} 条实验记录`)
+  flash(`已删除 ${n} 条记录`)
+}
 
 function refreshUsage(): void {
   usageKb.value = storageUsageKb()
@@ -178,6 +213,25 @@ function judgeOf(r: ExperimentRecord): { text: string; cls: string } {
       </div>
     </header>
 
+    <div class="rp__tools">
+      <label class="rp__filter">
+        模块
+        <select v-model="moduleFilter" class="select">
+          <option value="全部">全部（{{ records.length }}）</option>
+          <option v-for="m in moduleNames" :key="m" :value="m">{{ m }}</option>
+        </select>
+      </label>
+      <label class="rp__check">
+        <input type="checkbox" :checked="allChecked" :disabled="!visibleRecords.length" @change="toggleAll" />
+        全选当前列表
+      </label>
+      <span class="xs muted">已选 {{ checkedIds.length }} 条</span>
+      <span class="panel__spacer" />
+      <button class="btn btn--sm" :disabled="!checkedIds.length" @click="onBatchRemove">
+        删除选中{{ checkedIds.length ? `（${checkedIds.length}）` : '' }}
+      </button>
+    </div>
+
     <div class="rp__storage">
       <span class="rp__storage-icon">🔒</span>
       <span>
@@ -198,6 +252,15 @@ function judgeOf(r: ExperimentRecord): { text: string; cls: string } {
         <table class="rp-table">
           <thead>
             <tr>
+              <th class="rp-table__check">
+                <input
+                  type="checkbox"
+                  :checked="allChecked"
+                  :disabled="!visibleRecords.length"
+                  title="全选当前列表"
+                  @change="toggleAll"
+                />
+              </th>
               <th>编号</th>
               <th>模块</th>
               <th>测试时间</th>
@@ -208,11 +271,19 @@ function judgeOf(r: ExperimentRecord): { text: string; cls: string } {
           </thead>
           <tbody>
             <tr
-              v-for="r in [...records].reverse()"
+              v-for="r in visibleRecords"
               :key="r.id"
               :class="{ 'rp-table__row--on': selected?.id === r.id }"
               @click="selectedId = r.id"
             >
+              <td class="rp-table__check" @click.stop>
+                <input
+                  type="checkbox"
+                  :checked="checkedIds.includes(r.id)"
+                  :aria-label="`选择 ${r.id}`"
+                  @change="toggleCheck(r.id)"
+                />
+              </td>
               <td class="mono">{{ r.id }}</td>
               <td>{{ r.moduleName }}</td>
               <td class="mono xs">{{ fmtTime(r.timestamp) }}</td>
@@ -226,9 +297,9 @@ function judgeOf(r: ExperimentRecord): { text: string; cls: string } {
                 </button>
               </td>
             </tr>
-            <tr v-if="!records.length">
-              <td colspan="6">
-                <div class="empty rp-empty">
+            <tr v-if="!visibleRecords.length">
+              <td colspan="7">
+                <div v-if="!records.length" class="empty rp-empty">
                   <div class="rp-empty__title">还没有实验记录</div>
                   <ol class="rp-empty__steps">
                     <li>到左侧任意实验模块（如「几何光学」），调好参数</li>
@@ -236,6 +307,9 @@ function judgeOf(r: ExperimentRecord): { text: string; cls: string } {
                     <li>回到本页即可看到记录，并导出 CSV / JSON / PNG / 打印报告</li>
                   </ol>
                   <button class="btn btn--sm btn--primary" @click="goRecord">去「几何光学」记录一条</button>
+                </div>
+                <div v-else class="empty">
+                  当前筛选（{{ moduleFilter }}）下没有记录
                 </div>
               </td>
             </tr>
@@ -360,6 +434,40 @@ function judgeOf(r: ExperimentRecord): { text: string; cls: string } {
   font-size: var(--fs-xs);
   line-height: 1.5;
   color: var(--text-2);
+}
+
+.rp__tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel-2);
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+
+.rp__filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rp__check {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.rp-table__check {
+  width: 30px;
+  text-align: center;
+}
+
+.rp-table__check input {
+  cursor: pointer;
+  accent-color: var(--accent);
 }
 
 .rp__storage strong {

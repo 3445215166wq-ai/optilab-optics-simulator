@@ -113,6 +113,20 @@ export function removeRecord(id: string): void {
   persist()
 }
 
+/** 批量删除（一次持久化）；返回实际删除条数 */
+export function removeRecords(ids: string[]): number {
+  const set = new Set(ids)
+  let removed = 0
+  for (let i = state.records.length - 1; i >= 0; i -= 1) {
+    if (set.has(state.records[i].id)) {
+      state.records.splice(i, 1)
+      removed += 1
+    }
+  }
+  if (removed > 0) persist()
+  return removed
+}
+
 export function clearRecords(): void {
   state.records.length = 0
   persist()
