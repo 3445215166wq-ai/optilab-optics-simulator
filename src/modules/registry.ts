@@ -4,9 +4,11 @@
  * 避免出现「看起来能点但没功能」的假按钮。
  */
 import type { ModuleMeta } from './types'
+import AutofocusModule from './autofocus/AutofocusModule.vue'
 import DiffractionModule from './diffraction/DiffractionModule.vue'
 import GeoOpticsModule from './geoOptics/GeoOpticsModule.vue'
 import PsfMtfModule from './psfMtf/PsfMtfModule.vue'
+import QualityModule from './quality/QualityModule.vue'
 import RefractionModule from './refraction/RefractionModule.vue'
 
 export const MODULES: ModuleMeta[] = [
@@ -61,8 +63,9 @@ export const MODULES: ModuleMeta[] = [
     titleEn: 'Autofocus & Device Performance',
     short: '自动对焦',
     phase: 3,
-    status: 'planned',
-    summary: '清晰度评价函数、Z 轴扫描搜索与重复性统计（阶段三实现）',
+    status: 'ready',
+    summary: '虚拟 Z 轴平台 + 三种清晰度评价函数 + 全范围/粗精搜索 + 重复性统计与 PASS/FAIL 判定',
+    component: AutofocusModule,
   },
   {
     id: 'image-quality',
@@ -71,8 +74,9 @@ export const MODULES: ModuleMeta[] = [
     titleEn: 'Imaging Quality Test',
     short: '成像质量',
     phase: 3,
-    status: 'planned',
-    summary: '离焦/运动模糊/曝光/噪声退化与 PSNR、SSIM（阶段三实现）',
+    status: 'ready',
+    summary: '离焦/运动/曝光/噪声/照度退化与 SSIM、PSNR、清晰度指标，含批量扫描曲线与 ONNX 预留接口',
+    component: QualityModule,
   },
   {
     id: 'report',
