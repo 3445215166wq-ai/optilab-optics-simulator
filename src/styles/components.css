@@ -619,9 +619,15 @@
   color: var(--text-1);
 }
 
-/* 公式块 */
+/* 公式块
+ * 注意 1：flex 列容器里的子项若带 overflow（≠visible），其自动最小尺寸会退化成 0，
+ *         会被容器压扁成一条缝。因此这里显式 flex: 0 0 auto 保证高度不被压缩。
+ * 注意 2：white-space 用 pre-wrap —— 保留公式里的空格排版，同时允许长公式换行，
+ *         避免长代入式被右边界截断、必须横向滚动才能看到。
+ */
 .formula {
   display: block;
+  flex: 0 0 auto;
   margin: 5px 0;
   padding: 6px 9px;
   background: var(--bg-input);
@@ -630,8 +636,8 @@
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
   color: var(--text-1);
-  overflow-x: auto;
-  white-space: pre;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   line-height: 1.6;
 }
 
@@ -896,6 +902,16 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/*
+ * 竖向排列的内容区（数据坞面板 / 模块内容栈）里的直接子项一律不参与压缩：
+ * 数据坞高度有限，若允许压缩，带 overflow 的元素（公式块等）会被压成一条缝。
+ * 内容超出时应由面板自身滚动，而不是把内容压扁。
+ */
+.dock__pane:not(.dock__pane--flush) > *,
+.pane-stack > * {
+  flex: 0 0 auto;
 }
 
 .dock__pane--flush {
