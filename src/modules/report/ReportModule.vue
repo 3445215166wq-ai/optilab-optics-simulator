@@ -21,11 +21,19 @@ import {
   type ExperimentRecord,
 } from '@/stores/experiments'
 import { pushLog } from '@/stores/log'
+import { useNavigation } from '@/stores/navigation'
 
 const MODULE_NAME = '测试报告'
 const { records } = useExperiments()
+const { setActiveModule } = useNavigation()
 const selectedId = ref<string | null>(null)
 const message = ref('')
+
+/** 空状态下的引导：直接跳到实验模块去记录 */
+function goRecord(): void {
+  setActiveModule('geo-optics')
+  pushLog('info', MODULE_NAME, '已跳转到「几何光学」，点工具栏「记录实验」即可生成记录')
+}
 
 const selected = computed<ExperimentRecord | null>(
   () => records.value.find((r) => r.id === selectedId.value) ?? records.value[records.value.length - 1] ?? null,
@@ -166,9 +174,14 @@ function judgeOf(r: ExperimentRecord): { text: string; cls: string } {
             </tr>
             <tr v-if="!records.length">
               <td colspan="6">
-                <div class="empty">
-                  还没有实验记录<br />
-                  <span class="xs">到任意实验模块，点击舞台工具栏上的「记录实验」即可生成一条记录</span>
+                <div class="empty rp-empty">
+                  <div class="rp-empty__title">还没有实验记录</div>
+                  <ol class="rp-empty__steps">
+                    <li>到左侧任意实验模块（如「几何光学」），调好参数</li>
+                    <li>点舞台左上角工具栏里的 <strong>「记录实验」</strong></li>
+                    <li>回到本页即可看到记录，并导出 CSV / JSON / PNG / 打印报告</li>
+                  </ol>
+                  <button class="btn btn--sm btn--primary" @click="goRecord">去「几何光学」记录一条</button>
                 </div>
               </td>
             </tr>
@@ -381,6 +394,31 @@ function judgeOf(r: ExperimentRecord): { text: string; cls: string } {
   font-size: var(--fs-xs);
   line-height: 1.55;
   color: var(--text-2);
+}
+
+.rp-empty {
+  gap: 8px;
+  text-align: left;
+  align-items: flex-start;
+  padding: 18px 22px;
+}
+
+.rp-empty__title {
+  font-size: var(--fs-md);
+  color: var(--text-1);
+  font-weight: 600;
+}
+
+.rp-empty__steps {
+  margin: 0 0 4px;
+  padding-left: 18px;
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+  color: var(--text-2);
+}
+
+.rp-empty__steps strong {
+  color: var(--accent-strong);
 }
 
 @media (max-width: 1080px) {
