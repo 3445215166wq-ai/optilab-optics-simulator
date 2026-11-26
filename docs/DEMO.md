@@ -16,22 +16,24 @@
 
 ---
 
-## 2. 部署到 GitHub Pages（唯一还缺的一步）
+## 2. 在线地址（已部署）
 
-仓库里已经准备好：`vite.config.ts` 的 `base: './'`（相对路径，任意子路径可用）+ `.github/workflows/deploy.yml`（自动构建 + 测试 + 发布）。你只需要：
+**<https://3445215166wq-ai.github.io/optilab-optics-simulator/>**
+
+- 仓库：<https://github.com/3445215166wq-ai/optilab-optics-simulator>
+- 部署方式：GitHub Actions（`.github/workflows/deploy.yml`），每次 `git push` 到 `main` 自动跑
+  `typecheck → 197 个单测 → build → 发布`，**测试不过不会上线**；
+- 首次部署时踩过的两个坑（已修）：① lockfile 里残留 `--no-save` 装的 `playwright-core` 会让 `npm ci` 报不同步；
+  ② `setup-node` 用 Node 20 低于 Vite 8 要求（^20.19 / ≥22.12），已改 Node 22；③ 务必**先启用 Pages（`build_type=workflow`）再 push**，
+  否则 `deploy-pages` 会因「Pages site 未启用」失败。
+
+本地预览（改完代码想先看效果）：
 
 ```bash
-# 1) 在 GitHub 建一个空仓库，例如 optilab
-git remote add origin https://github.com/<你的用户名>/optilab.git
-git push -u origin main
-
-# 2) 仓库 Settings → Pages → Source 选 "GitHub Actions"
-
-# 3) 等 Actions 跑完（会自动执行 typecheck + 197 个单测 + build）
-#    访问 https://<你的用户名>.github.io/optilab/
+npm run dev      # http://localhost:5173
+npm run build    # 产物在 dist/，可直接双击 index.html 之外用 preview 起本地服务
+npm run preview
 ```
-
-之后每次 `git push` 都会自动重新部署，测试不过就不会发布（这就是「CI 守门」的演示点）。
 
 > 部署后务必自己点一遍：8 个模块各打开一次、深/浅主题切一次、F12 看有没有 console error。
 
