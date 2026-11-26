@@ -431,7 +431,7 @@ export const GEO_RAY_LEGEND = [
   { key: 'center', colorVar: 'ray-center', label: '过光心光线', labelEn: 'chief ray', dashed: false },
   { key: 'focal', colorVar: 'ray-refracted', label: '过焦点光线', labelEn: 'focal ray', dashed: false },
   { key: 'bundle', colorVar: 'ray-bundle', label: '光锥采样', labelEn: 'ray bundle', dashed: false },
-  { key: 'virtual', colorVar: 'ray-virtual', label: '虚像延长线', labelEn: 'virtual extension', dashed: true },
+  { key: 'virtual', colorVar: 'ray-virtual', label: '虚线＝虚像延长线', labelEn: 'virtual extension', dashed: true },
 ] as const
 
 /** 舞台左下角提示文字用的字体（供模块覆盖层复用） */
