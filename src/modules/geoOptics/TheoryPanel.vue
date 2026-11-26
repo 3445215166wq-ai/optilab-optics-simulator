@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** 模块一：光学原理 / 公式 / 适用条件 / 面试要点（纯内容组件） */
+/** 模块一：光学原理 / 公式 / 适用条件 / 学习要点（纯内容组件） */
 import FoldSection from '@/components/ui/FoldSection.vue'
 </script>
 
@@ -57,7 +57,7 @@ import FoldSection from '@/components/ui/FoldSection.vue'
       </p>
     </FoldSection>
 
-    <FoldSection title="面试要点" title-en="Interview Q&amp;A">
+    <FoldSection title="学习要点" title-en="Key points">
       <p><span class="q">Q：物距恰好等于焦距时，像在哪里？</span></p>
       <p class="a">A：出射光线平行于光轴，像在无穷远，不存在有限像距；此时高斯公式分母为零，必须按极限讨论，工程上对应准直器工况。</p>
       <p><span class="q">Q：为什么实像一定倒立、虚像一定正立？</span></p>

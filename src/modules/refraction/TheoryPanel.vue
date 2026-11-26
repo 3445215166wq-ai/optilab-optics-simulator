@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** 模块二：光学原理 / 公式 / 适用条件 / 面试要点 */
+/** 模块二：光学原理 / 公式 / 适用条件 / 学习要点 */
 import FoldSection from '@/components/ui/FoldSection.vue'
 </script>
 
@@ -45,7 +45,7 @@ import FoldSection from '@/components/ui/FoldSection.vue'
       </ul>
     </FoldSection>
 
-    <FoldSection title="面试要点" title-en="Interview Q&amp;A">
+    <FoldSection title="学习要点" title-en="Key points">
       <p><span class="q">Q：什么时候会发生全反射？为什么水中的气泡看起来是亮的？</span></p>
       <p class="a">A：光由光密介质射向光疏介质且入射角大于临界角时。气泡壁面处光线从水射向空气，大角度入射发生全反射，把水中的光「关」在气泡界面内并射向观察者，因此看起来发亮。</p>
       <p><span class="q">Q：临界角如何计算？玻璃到空气大概多少？</span></p>

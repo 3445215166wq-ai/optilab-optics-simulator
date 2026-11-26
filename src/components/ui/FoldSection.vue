@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** 可折叠的原理 / 公式 / 面试要点区块 */
+/** 可折叠的原理 / 公式 / 学习要点区块 */
 defineProps<{
   title: string
   titleEn?: string
